@@ -1,0 +1,47 @@
+<HTML>
+<HEAD>
+</HEAD>
+
+<BODY>
+
+<h1><u>Installation Instructions</u></h1>
+
+<h1>Prerequisites:</h1>
+
+First, install these and make sure they work.
+
+<h2>Python3:</h2>
+
+A recent release is needed. Developement took place using the 3.8.x
+release series. Any 3.X release <i>should</i> work, but hasn't been
+tested. Under MacOSX 10.3 (panther), Python is installed by
+default. Installation instructions are available at the python
+website: <a href="http://www.python.org">www.python.org</a>
+
+<h2>OBD:</h2>
+
+This is needed to communicate via the serial port. It is available
+as a pip package. Install it. Version 0.7.1 was used for development.
+It uses pyserial and pint included in its package.
+
+See the <a href="https://python-obd.readthedocs.io/">Python OBD Docs</a>
+
+<h2>WxPython:</h2>
+
+WxPython is needed if you want to use the pretty graphical interface
+to sensor data and DTC management. It's available as a pip package.
+Install it. Version 4.2.1 was used for development.
+
+<h1>Installation:</h1>
+
+After those requirements, installation is a snap. Simply download the
+release tarball and uncompress it. To "install" pyOBDA on the system, simply copy
+the release directory to wherever you want (i.e. /opt, /usr/local).
+
+To use the wx interface run <b>python3 pyobda.py</b>. If you're using
+MacOSX, substitute "pythonw" for "python".
+
+<hr>
+-- Keven L. Ates
+</BODY>
+</HTML>

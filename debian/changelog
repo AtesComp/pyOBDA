@@ -1,0 +1,7 @@
+pyOBDA (1.0.0) unstable; urgency=low
+
+  * Refactored from pyOBD
+  * Various bugfixes
+  * Initial release
+
+ -- Keven L. Ates <atescomp@gmail.com>  Thu Nov 11 05:02:45 AM EST 2021

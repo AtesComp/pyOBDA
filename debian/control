@@ -1,0 +1,11 @@
+Package: pyobda
+Version: 1.0.0
+Architecture: all
+Maintainer: Keven L. Ates <atescomp@gmail.com>
+Installed-Size: 203
+Depends: python3, python-wxgtk4.0
+Section: utils
+Priority: optional
+Homepage: <www.github.com/AtesComp/pyobda>
+Description: pyOBDA is an OBD-II (SAE-J1979) compliant scantool software written entirely in Python. It is meant to interface with the low cost ELM 32x devices such as ELM-USB.
+ pyOBDA was written by Keven L. Ates (based on pyODB) and it is Free Software and is distributed under the terms of the GPL.  For Python devlopers, pyOBDA provides a single module, OBD2Port, that allows high level control over sensor data and diagnostic trouble code managment. The entire package has been tested to work on Ubuntu Linux. Generally speaking, any Posix-type system meeting the requirements below will be supported. In theory, Mac and Windows are also supported but have not been tested.
