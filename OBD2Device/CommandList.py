@@ -164,7 +164,7 @@ class CommandList(object):
     for c in MODE_1:
         c = c.clone()
         c.command = b"02" + c.command[2:]  # ...change the mode: 0100 --> 0200
-        c.name = "DTC_" + c.name
+        c.name = "FF_" + c.name
         c.desc = "FF " + c.desc
         if c.decode == pid:
             c.decode = drop  # ...never send Mode 2 PID requests--use Mode 1 instead
