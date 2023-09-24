@@ -1,22 +1,23 @@
 ```
            API
-┌───────────────────────┐
-│   obd.py / async.py   │
-└───┰───────────────────┘
+┌───────────────────────────┐
+│   ODB2Connector.py /      │
+│   ODB2ConnectorAsync.py   │
+└───┰───────────────────────┘
     ┃               ▲
     ┃               ┃
-┌───╂───────────────╂───┐      ┌─────────────────┐         ┌────────────────────┐
-│   ┃               ┗━━━┿━━━━━━┥                 │◀ ━━━━━━━┥                    │
-│   ┃ OBDCommand.py     │      │   decoders.py   │ (maybe) │ UnitsAndScaling.py │
+┌───╂───────────────╂───┐       ┌─────────────────┐          ┌────────────────────┐
+│   ┃               ┗━━━┿━━━━━━━┥                 │◀ ━━━━━━━┥                    │
+│   ┃ Command.py        │       │   decoders.py   │  (maybe) │ UnitsAndScaling.py │
 │   ┃               ┏━━━┿━━━━ ▶│                 ┝━━━━━━━ ▶│                    │
-└───╂───────────────╂───┘      └─────────────────┘         └────────────────────┘
+└───╂───────────────╂───┘       └─────────────────┘          └────────────────────┘
     ┃               ┃
     ┃               ┃
-┌───╂───────────────╂───┐      ┌─────────────────┐
-│   ┃               ┗━━━┿━━━━━━┥                 │
-│   ┃   elm327.py       │      │    protocol/    │
+┌───╂───────────────╂───┐       ┌─────────────────┐
+│   ┃               ┗━━━┿━━━━━━━┥                 │
+│   ┃   elm327.py       │       │    protocol/    │
 │   ┃               ┏━━━┿━━━━ ▶│                 │
-└───╂───────────────╂───┘      └─────────────────┘
+└───╂───────────────╂───┘       └─────────────────┘
     ┃               ┃
     ▼               ┃
 ┌───────────────────┸───┐
@@ -27,6 +28,6 @@
 
 Not pictured:
 
-- `commands.py` : defines the various OBD commands, and which decoder they use
-- `codes.py` : stores tables of standardized values needed by `decoders.py` (mostly check-engine codes)
-- `OBDResponse.py` : defines structures/objects returned by the API in response to a query.
+- `CommandList.py` : defines the various OBD II commands, and which decoder they use
+- `Codes.py` : stores standardized OBD II DTC and other tables needed by `decoders.py` (mostly check-engine codes)
+- `Response.py` : defines objects returned by the API in response to a query.
