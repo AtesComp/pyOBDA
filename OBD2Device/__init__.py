@@ -37,14 +37,15 @@
 #                                                                      #
 ########################################################################
 
-from .__version__ import __version__
-from .obd import OBD
-from .asynchronous import Async
-from .commands import commands
-from .OBDCommand import OBDCommand
-from .OBDResponse import OBDResponse
 from .protocols import ECU
-from .utils import scan_serial, OBDStatus
+from .utils import scan_serial
+
+from .OBD2Connector import OBD2Connector
+from .OBD2ConnectorAsync import OBD2ConnectorAsync
+from .ConnectionStatus import ConnectionStatus
+from .CommandList import CommandList
+from .Command import Command
+from .Response import Response
 from .UnitsAndScaling import Unit
 
 import logging

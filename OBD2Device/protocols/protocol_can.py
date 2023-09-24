@@ -33,7 +33,7 @@
 import logging
 from binascii import unhexlify
 
-from obd.utils import contiguous
+from OBD2Device.utils import contiguous
 from .protocol import Protocol
 
 logger = logging.getLogger(__name__)

@@ -1,5 +1,7 @@
 ############################################################################
 #
+# Python Onboard Diagnostics II Advanced
+#
 # Frame.py
 #
 # Copyright 2023 Keven L. Ates (atescomp@gmail.com)
@@ -24,19 +26,17 @@
 import wx
 import sys
 
-import Connection
-import ListCtrl
-import OBD2Codes
-#import OBD2Port
-import Sensor
-import SensorProducer
-import Config
-import EventDebug
-import EventDTC
-import EventResult
-import EventStatus
-import EventTest
-import Utility
+import AppSettings
+from ListCtrl import ListCtrl
+from SensorManager import SensorManager
+from SensorProducer import SensorProducer
+from ConfigDlg import ConfigDlg
+from EventDebug import EventDebug
+from EventDTC import EventDTC
+from EventResult import EventResult
+from EventStatus import EventStatus
+from EventTest import EventTest
+from OBD2Device.Codes import Codes
 
 #
 # The pyOBDA Frame
@@ -66,7 +66,7 @@ class Frame(wx.Frame):
         # ====================
         # Setup Configuration
         # ====================
-        self.configDialog = Config.Dialog(self)
+        self.configDialog = ConfigDlg(self)
 
         # ====================
         # Connect Process Event Handlers
@@ -109,23 +109,23 @@ class Frame(wx.Frame):
 
         # Setting up the File menu...
         self.filemenu = wx.Menu()
-        self.filemenu.Append(Utility.ID_EXIT, "E&xit", " Terminate the program")
+        self.filemenu.Append(AppSettings.ID_EXIT, "E&xit", " Terminate the program")
 
         # Setting up the Settings menu...
         self.settingmenu = wx.Menu()
-        self.settingmenu.Append(Utility.ID_CONFIG, "Configure", "Configure pyOBD")
-        self.settingmenu.Append(Utility.ID_RESET, "Connect", "Connect to device")
-        self.settingmenu.Append(Utility.ID_DISCONNECT, "Disconnect", "Close device connection")
+        self.settingmenu.Append(AppSettings.ID_CONFIG, "Configure", "Configure pyOBD")
+        self.settingmenu.Append(AppSettings.ID_RESET, "Connect", "Connect to device")
+        self.settingmenu.Append(AppSettings.ID_DISCONNECT, "Disconnect", "Close device connection")
 
         # Setting up the DTC menu...
         self.listctrlDTCmenu = wx.Menu()
-        self.listctrlDTCmenu.Append(Utility.ID_GETC, "Get DTCs", " Get DTC Codes")
-        self.listctrlDTCmenu.Append(Utility.ID_CLEAR, "Clear DTC", " Clear DTC Codes")
-        self.listctrlDTCmenu.Append(Utility.ID_LOOK, "Code Lookup", " Lookup DTC Codes")
+        self.listctrlDTCmenu.Append(AppSettings.ID_GETC, "Get DTCs", " Get DTC Codes")
+        self.listctrlDTCmenu.Append(AppSettings.ID_CLEAR, "Clear DTC", " Clear DTC Codes")
+        self.listctrlDTCmenu.Append(AppSettings.ID_LOOK, "Code Lookup", " Lookup DTC Codes")
 
         # Setting up the Help menu...
         self.helpmenu = wx.Menu()
-        self.helpmenu.Append(Utility.ID_HELP_ABOUT, "About", " About this program")
+        self.helpmenu.Append(AppSettings.ID_HELP_ABOUT, "About", " About this program")
 
         # Creating the menubar...
         self.menuBar = wx.MenuBar()
@@ -143,14 +143,14 @@ class Frame(wx.Frame):
         # ====================
 
         # Bind the menu events...
-        self.Bind(wx.EVT_MENU, self.OnExit,       id=Utility.ID_EXIT)
-        self.Bind(wx.EVT_MENU, self.OnClearDTC,   id=Utility.ID_CLEAR)
-        self.Bind(wx.EVT_MENU, self.OnConfigure,  id=Utility.ID_CONFIG)
-        self.Bind(wx.EVT_MENU, self.OnConnect,    id=Utility.ID_RESET)
-        self.Bind(wx.EVT_MENU, self.OnDisconnect, id=Utility.ID_DISCONNECT)
-        self.Bind(wx.EVT_MENU, self.OnGetDTC,     id=Utility.ID_GETC)
-        self.Bind(wx.EVT_MENU, self.OnLookupCode, id=Utility.ID_LOOK)
-        self.Bind(wx.EVT_MENU, self.OnHelpAbout,  id=Utility.ID_HELP_ABOUT)
+        self.Bind(wx.EVT_MENU, self.OnExit,       id=AppSettings.ID_EXIT)
+        self.Bind(wx.EVT_MENU, self.OnClearDTC,   id=AppSettings.ID_CLEAR)
+        self.Bind(wx.EVT_MENU, self.OnConfigure,  id=AppSettings.ID_CONFIG)
+        self.Bind(wx.EVT_MENU, self.OnConnect,    id=AppSettings.ID_RESET)
+        self.Bind(wx.EVT_MENU, self.OnDisconnect, id=AppSettings.ID_DISCONNECT)
+        self.Bind(wx.EVT_MENU, self.OnGetDTC,     id=AppSettings.ID_GETC)
+        self.Bind(wx.EVT_MENU, self.OnLookupCode, id=AppSettings.ID_LOOK)
+        self.Bind(wx.EVT_MENU, self.OnHelpAbout,  id=AppSettings.ID_HELP_ABOUT)
 
         # ====================
         # Process and Display
@@ -163,22 +163,22 @@ class Frame(wx.Frame):
     def SensorControlOn(self):
         wx.PostEvent(self, EventDebug([0, "Sensor Control On"]))
         # Enable a few buttons...
-        self.settingmenu.Enable(Utility.ID_CONFIG, False)
-        self.settingmenu.Enable(Utility.ID_RESET, False)
-        self.settingmenu.Enable(Utility.ID_DISCONNECT, True)
-        self.listctrlDTCmenu.Enable(Utility.ID_GETC, True)
-        self.listctrlDTCmenu.Enable(Utility.ID_CLEAR, True)
+        self.settingmenu.Enable(AppSettings.ID_CONFIG, False)
+        self.settingmenu.Enable(AppSettings.ID_RESET, False)
+        self.settingmenu.Enable(AppSettings.ID_DISCONNECT, True)
+        self.listctrlDTCmenu.Enable(AppSettings.ID_GETC, True)
+        self.listctrlDTCmenu.Enable(AppSettings.ID_CLEAR, True)
         self.buttonGetDTC.Enable(True)
         self.buttonClearDTC.Enable(True)
 
     def SensorControlOff(self):
         wx.PostEvent(self, EventDebug([0, "Sensor Control Off"]))
         # Disable a few buttons...
-        self.settingmenu.Enable(Utility.ID_CONFIG, True)
-        self.settingmenu.Enable(Utility.ID_RESET, True)
-        self.settingmenu.Enable(Utility.ID_DISCONNECT, False)
-        self.listctrlDTCmenu.Enable(Utility.ID_GETC, False)
-        self.listctrlDTCmenu.Enable(Utility.ID_CLEAR, False)
+        self.settingmenu.Enable(AppSettings.ID_CONFIG, True)
+        self.settingmenu.Enable(AppSettings.ID_RESET, True)
+        self.settingmenu.Enable(AppSettings.ID_DISCONNECT, False)
+        self.listctrlDTCmenu.Enable(AppSettings.ID_GETC, False)
+        self.listctrlDTCmenu.Enable(AppSettings.ID_CLEAR, False)
         self.buttonGetDTC.Enable(False)
         self.buttonClearDTC.Enable(False)
         #self.listctrlSensors.Unbind(wx.EVT_LIST_ITEM_ACTIVATED)
@@ -245,7 +245,7 @@ class Frame(wx.Frame):
 
         self.notebook.AddPage(self.panelTests, "Tests")
 
-        for codeTest in OBD2Codes.CodeTest :  # ...fill test descriptions...
+        for codeTest in Codes.CodeTest :  # ...fill test descriptions...
             self.listctrlTests.Append([codeTest, "---"])
 
     def BuildSensorPage(self):
@@ -288,8 +288,8 @@ class Frame(wx.Frame):
             self.listctrlSensors[iSensorGroup].InsertColumn(0, "Supported", format=wx.LIST_FORMAT_CENTER, width=100)
             self.listctrlSensors[iSensorGroup].InsertColumn(1, "Sensor", format=wx.LIST_FORMAT_RIGHT, width=250)
             self.listctrlSensors[iSensorGroup].InsertColumn(2, "Value")
-            for sensor in Sensor.Manager.SENSORS[iSensorGroup] :
-                self.listctrlSensors[iSensorGroup].Append([Utility.CHAR_QMARK, sensor.name, ""])
+            for sensor in SensorManager.SENSORS[iSensorGroup] :
+                self.listctrlSensors[iSensorGroup].Append([AppSettings.CHAR_QMARK, sensor.name, ""])
             self.listctrlSensors[iSensorGroup].Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnToggleSensor, id=self.idSensors[iSensorGroup])
 
             self.panelSensors[iSensorGroup].Bind(wx.EVT_SIZE, OnPanelResize)
@@ -359,9 +359,7 @@ class Frame(wx.Frame):
         self.notebook.AddPage(self.panelTrace, "Trace")
 
     def TraceDebug(self, level, msg):
-        global DEBUG_LEVEL
-
-        if DEBUG_LEVEL >= level:
+        if AppSettings.DEBUG_LEVEL >= level:
             self.listctrlTrace.Append([str(level), msg])
 
     def OnToggleSensor(self, event) :
@@ -370,10 +368,10 @@ class Frame(wx.Frame):
             wx.PostEvent( self, EventDebug( [1, "Toggle Sensor: " + self.listctrlSensors.GetItemText(iIndex, 1)] ) )
             if self.SensorProd.active[iIndex] : # ...is ON?
                 self.SensorProd.SetIDOff(iIndex)
-                self.listctrlSensors.SetItem(iIndex, 0, Utility.CHAR_BALLOTX) # CHAR_BALLOTX
+                self.listctrlSensors.SetItem(iIndex, 0, AppSettings.CHAR_BALLOTX) # CHAR_BALLOTX
             else : # ...is OFF?
                 self.SensorProd.SetIDOn(iIndex)
-                self.listctrlSensors.SetItem(iIndex, 0, Utility.CHAR_CHECK)
+                self.listctrlSensors.SetItem(iIndex, 0, AppSettings.CHAR_CHECK)
 
             #else:
             #    wx.PostEvent(app, EventDebug([1, "ERROR: Incorrect Sensor State"]))
@@ -382,7 +380,7 @@ class Frame(wx.Frame):
         self.iCurrSensorsPage = event.GetSelection() # ...current sensors page
 
     def OnHelpAbout(self, event) :
-        HelpAboutDlg = wx.MessageDialog(self, Utility.STR_HELP_TEXT, 'About', wx.OK | wx.ICON_INFORMATION)
+        HelpAboutDlg = wx.MessageDialog(self, AppSettings.STR_HELP_TEXT, 'About', wx.OK | wx.ICON_INFORMATION)
         HelpAboutDlg.ShowModal()
         HelpAboutDlg.Destroy()
 
@@ -442,7 +440,7 @@ class Frame(wx.Frame):
         treectrlDTC = wx.TreeCtrl(diag, id, style=wx.TR_HAS_BUTTONS)
 
         idRoot = treectrlDTC.AddRoot("Code Reference")
-        keysCode = sorted(OBD2Codes.Codes.keys())
+        keysCode = sorted(Codes.Codes.keys())
         strGroup = "" # ...initial group ensures start
         idBranch = None
         for strCode in keysCode:
@@ -454,7 +452,7 @@ class Frame(wx.Frame):
             # New Leaf ID: Key Text for Leaf on Branch...
             idLeaf = treectrlDTC.AppendItem(idBranch, strCode)
             # Value Text for Leaf...
-            treectrlDTC.AppendItem(idLeaf, OBD2Codes.Codes[strCode])
+            treectrlDTC.AppendItem(idLeaf, Codes.Codes[strCode])
 
         diag.SetSize((600, 800))
         diag.Show(True)

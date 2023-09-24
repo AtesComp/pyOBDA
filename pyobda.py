@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 ############################################################################
 #
+# Python Onboard Diagnostics II Advanced
+#
 # pyobda.py
 #
 # Copyright 2023 Keven L. Ates (atescomp@gmail.com)
@@ -24,7 +26,7 @@
 
 import wx
 
-import Frame
+from Frame import Frame
 
 #
 # The pyOBDA App

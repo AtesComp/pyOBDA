@@ -1,5 +1,7 @@
 ############################################################################
 #
+# Python Onboard Diagnostics II Advanced
+#
 # SensorProducer.py
 #
 # Copyright 2023 Keven L. Ates (atescomp@gmail.com)
@@ -24,15 +26,15 @@
 import wx
 import threading
 
-import Connection
-import OBD2Codes
-import OBD2Port
-import EventDebug
-import EventDTC
-import EventResult
-import EventStatus
-import EventTest
-import Utility
+import AppSettings
+from Connection import Connection
+from OBD2Port import OBD2Port
+from EventDebug import EventDebug
+from EventDTC import EventDTC
+from EventResult import EventResult
+from EventStatus import EventStatus
+from EventTest import EventTest
+from OBD2Device.Codes import Codes
 
 # A Sensor Producer class to produce sensor managers...
 class SensorProducer(threading.Thread):
@@ -62,25 +64,25 @@ class SensorProducer(threading.Thread):
             for iIndex, bSupport in enumerate(self.supported[iSensorGroup]) :
                 self.active[iSensorGroup].append(bSupport)
                 if bSupport :
-                    wx.PostEvent( self.controls, EventResult([iIndex, 0, Utility.CHAR_CHECK] ) )
+                    wx.PostEvent( self.controls, EventResult([iIndex, 0, AppSettings.CHAR_CHECK] ) )
                 else:
-                    wx.PostEvent( self.controls, EventResult([iIndex, 0, Utility.CHAR_BALLOTX] ) )
+                    wx.PostEvent( self.controls, EventResult([iIndex, 0, AppSettings.CHAR_BALLOTX] ) )
 
         wx.PostEvent( self.controls, EventDebug( [3, "  Sensors marked for support..."] ) )
 
     def StartProduction(self):
         wx.PostEvent( self.controls, EventDebug( [2, "Starting Sensor Connection..."] ) )
-        wx.PostEvent( self.controls, EventStatus( [0, 1, Utility.CHAR_QMARK] ) )
+        wx.PostEvent( self.controls, EventStatus( [0, 1, AppSettings.CHAR_QMARK] ) )
         self.InitCommunication()
         if self.connection.PORT.Connected == False:  # ...cannot connect, exit thread
             wx.PostEvent( self.controls, EventDebug( [1, "ERROR: Connection Failed!"] ) )
             # Signal app that communication failed...
-            wx.PostEvent( self.controls, EventStatus( [0, 1, Utility.CHAR_CROSSX] ) )
+            wx.PostEvent( self.controls, EventStatus( [0, 1, AppSettings.CHAR_CROSSX] ) )
             wx.PostEvent( self.controls, EventStatus( [-1, -1, "SIGNAL: Failed"] ) ) # ...signal connection failure to app
             return
 
         wx.PostEvent( self.controls, EventDebug( [3, "  Connected"] ) )
-        wx.PostEvent( self.controls, EventStatus( [0, 1, Utility.CHAR_CHECK] ) )
+        wx.PostEvent( self.controls, EventStatus( [0, 1, AppSettings.CHAR_CHECK] ) )
         wx.PostEvent( self.controls, EventStatus( [2, 1, self.connection.PORT.ELMver] ) )
         wx.PostEvent( self.controls, EventStatus( [3, 1, self.connection.PORT.ELMvolts] ) )
         statePrev = -1
@@ -133,7 +135,7 @@ class SensorProducer(threading.Thread):
                         response = ["", "", "No DTC Codes (all clear)"]
                         wx.PostEvent( self.controls, EventDTC(response) )
                     for iIndex in range(0, len(codesDTC)):
-                        response = [ codesDTC[iIndex][1], codesDTC[iIndex][0], OBD2Codes.Codes[ codesDTC[iIndex][1] ] ]
+                        response = [ codesDTC[iIndex][1], codesDTC[iIndex][0], Codes.Codes[ codesDTC[iIndex][1] ] ]
                         wx.PostEvent( self.controls, EventDTC(response) )
 
                     # Before resetting ThreadControl, check for a disconnect
@@ -160,7 +162,7 @@ class SensorProducer(threading.Thread):
         if self.connection.PORT != None:
             self.connection.PORT.close()
             self.connection.PORT = None
-        wx.PostEvent( self.controls, EventStatus([0, 1, Utility.CHAR_BALLOTX] ) )
+        wx.PostEvent( self.controls, EventStatus([0, 1, AppSettings.CHAR_BALLOTX] ) )
         wx.PostEvent( self.controls, EventStatus([2, 1, "Unknown"] ) )
         wx.PostEvent( self.controls, EventStatus([3, 1, "---"] ) )
 

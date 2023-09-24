@@ -1,5 +1,7 @@
 ############################################################################
 #
+# Python Onboard Diagnostics II Advanced
+#
 # Connection.py
 #
 # Copyright 2023 Keven L. Ates (atescomp@gmail.com)
@@ -20,6 +22,9 @@
 # along with pyOBDA; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ############################################################################
+
+import AppSettings
+
 
 # A simple Connection class to hold connection values...
 class Connection():
@@ -50,8 +55,6 @@ class Connection():
             self.RECONNECTS = None
 
     def resetConnection(self):
-        global DEBUG_LEVEL
-
         self.PORTNAME = Connection.strPortNameDefault
         self.BAUD = 115200
         self.PROTOCOL = "6"
@@ -59,4 +62,4 @@ class Connection():
         self.CHECKVOLTS = True
         self.TIMEOUT = 10
         self.RECONNECTS = 3
-        DEBUG_LEVEL = Connection.iDebugLevelDefault
+        AppSettings.DEBUG_LEVEL = Connection.iDebugLevelDefault

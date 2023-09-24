@@ -30,12 +30,16 @@
 #                                                                      #
 ########################################################################
 
-import math
 import functools
-from .utils import *
-from .codes import *
-from .OBDResponse import Status, StatusTest, Monitor, MonitorTest
+
 from .UnitsAndScaling import Unit, UAS_IDS
+from .Status import Status
+from .StatusTest import StatusTest
+from .Monitor import Monitor
+from .MonitorTest import MonitorTest
+from .Codes import Codes
+
+from .utils import *
 
 import logging
 
@@ -295,22 +299,22 @@ def status(messages):
     output = Status()
     output.MIL = bits[0]
     output.DTC_count = bits.value(1, 8)
-    output.ignition_type = IGNITION_TYPE[int(bits[12])]
+    output.ignition_type = Codes.IgnitionType[int(bits[12])]
 
     # load the 3 base tests that are always present
-    for i, name in enumerate(BASE_TESTS[::-1]):
+    for i, name in enumerate(Codes.Test.Base[::-1]):
         t = StatusTest(name, bits[13 + i], not bits[9 + i])
         output.__dict__[name] = t
 
     # different tests for different ignition types
     if bits[12]:  # compression
-        for i, name in enumerate(COMPRESSION_TESTS[::-1]):  # reverse to correct for bit vs. indexing order
+        for i, name in enumerate(Codes.Test.Compression[::-1]):  # reverse to correct for bit vs. indexing order
             t = StatusTest(name, bits[(2 * 8) + i],
                            not bits[(3 * 8) + i])
             output.__dict__[name] = t
 
     else:  # spark
-        for i, name in enumerate(SPARK_TESTS[::-1]):  # reverse to correct for bit vs. indexing order
+        for i, name in enumerate(Codes.Test.Spark[::-1]):  # reverse to correct for bit vs. indexing order
             t = StatusTest(name, bits[(2 * 8) + i],
                            not bits[(3 * 8) + i])
             output.__dict__[name] = t
@@ -326,16 +330,16 @@ def fuel_status(messages):
     status_2 = ""
 
     if bits[0:8].count(True) == 1:
-        if 7 - bits[0:8].index(True) < len(FUEL_STATUS):
-            status_1 = FUEL_STATUS[7 - bits[0:8].index(True)]
+        if 7 - bits[0:8].index(True) < len(Codes.Status.Fuel):
+            status_1 = Codes.Status.Fuel[7 - bits[0:8].index(True)]
         else:
             logger.debug("Invalid response for fuel status (high bits set)")
     else:
         logger.debug("Invalid response for fuel status (multiple/no bits set)")
 
     if bits[8:16].count(True) == 1:
-        if 7 - bits[8:16].index(True) < len(FUEL_STATUS):
-            status_2 = FUEL_STATUS[7 - bits[8:16].index(True)]
+        if 7 - bits[8:16].index(True) < len(Codes.Status.Fuel):
+            status_2 = Codes.Status.Fuel[7 - bits[8:16].index(True)]
         else:
             logger.debug("Invalid response for fuel status (high bits set)")
     else:
@@ -353,7 +357,7 @@ def air_status(messages):
 
     status = None
     if bits.num_set() == 1:
-        status = AIR_STATUS[7 - bits[0:8].index(True)]
+        status = Codes.Status.Air[7 - bits[0:8].index(True)]
     else:
         logger.debug("Invalid response for fuel status (multiple/no bits set)")
 
@@ -366,8 +370,8 @@ def obd_compliance(messages):
 
     v = None
 
-    if i < len(OBD_COMPLIANCE):
-        v = OBD_COMPLIANCE[i]
+    if i < len(Codes.Compliance):
+        v = Codes.Compliance[i]
     else:
         logger.debug("Invalid response for OBD compliance (no table entry)")
 
@@ -380,8 +384,8 @@ def fuel_type(messages):
 
     v = None
 
-    if i < len(FUEL_TYPES):
-        v = FUEL_TYPES[i]
+    if i < len(Codes.FuelType):
+        v = Codes.FuelType[i]
     else:
         logger.debug("Invalid response for fuel type (no table entry)")
 
@@ -407,7 +411,7 @@ def parse_dtc(_bytes):
     dtc += bytes_to_hex(_bytes)[1:4]
 
     # pull a description if we have one
-    return (dtc, DTC.get(dtc, ""))
+    return (dtc, Codes.Codes.get(dtc, ""))
 
 
 def single_dtc(messages):
@@ -441,9 +445,9 @@ def parse_monitor_test(d, mon):
 
     tid = d[1]
 
-    if tid in TEST_IDS:
-        test.name = TEST_IDS[tid][0]  # lookup the name from the table
-        test.desc = TEST_IDS[tid][1]  # lookup the description from the table
+    if tid in MonitorTest.LABELS:
+        test.name = MonitorTest.LABELS[tid][0]  # lookup the name from the table
+        test.desc = MonitorTest.LABELS[tid][1]  # lookup the description from the table
     else:
         logger.debug("Encountered unknown Test ID")
         test.name = "Unknown"

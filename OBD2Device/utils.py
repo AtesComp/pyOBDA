@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 ########################################################################
 #                                                                      #
 # python-OBD: A python OBD-II serial module derived from pyobd         #
@@ -39,15 +37,6 @@ import sys
 import serial
 
 logger = logging.getLogger(__name__)
-
-
-class OBDStatus:
-    """ Values for the connection status flags """
-
-    NOT_CONNECTED = "Not Connected"
-    ELM_CONNECTED = "ELM Connected"
-    OBD_CONNECTED = "OBD Connected"
-    CAR_CONNECTED = "Car Connected"
 
 
 class BitArray:

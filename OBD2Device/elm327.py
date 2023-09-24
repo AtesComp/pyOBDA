@@ -35,7 +35,8 @@ import serial
 import time
 import logging
 from .protocols import *
-from .utils import OBDStatus
+
+from .ConnectionStatus import ConnectionStatus
 
 logger = logging.getLogger(__name__)
 
@@ -116,7 +117,7 @@ class ELM327:
                         "auto" if protocol is None else protocol,
                     ))
 
-        self.__status = OBDStatus.NOT_CONNECTED
+        self.__status = ConnectionStatus.NONE
         self.__port = None
         self.__protocol = UnknownProtocol([])
         self.__low_power = False
@@ -174,7 +175,7 @@ class ELM327:
             return
 
         # by now, we've successfuly communicated with the ELM, but not the car
-        self.__status = OBDStatus.ELM_CONNECTED
+        self.__status = ConnectionStatus.ELM
 
         # -------------------------- AT RV (read volt) ------------------------
         if check_voltage:
@@ -190,11 +191,11 @@ class ELM327:
                 self.__error("Incorrect response from 'AT RV'")
                 return
             # by now, we've successfuly connected to the OBD socket
-            self.__status = OBDStatus.OBD_CONNECTED
+            self.__status = ConnectionStatus.OBD
 
         # try to communicate with the car, and load the correct protocol parser
         if self.set_protocol(protocol):
-            self.__status = OBDStatus.CAR_CONNECTED
+            self.__status = ConnectionStatus.VEHICLE
             logger.info("Connected Successfully: PORT=%s BAUD=%s PROTOCOL=%s" %
                         (
                             portname,
@@ -202,7 +203,7 @@ class ELM327:
                             self.__protocol.ELM_ID,
                         ))
         else:
-            if self.__status == OBDStatus.OBD_CONNECTED:
+            if self.__status == ConnectionStatus.OBD:
                 logger.error("Adapter connected, but the ignition is off")
             else:
                 logger.error("Connected to the adapter, "
@@ -389,7 +390,7 @@ class ELM327:
             is going to become active.
         """
 
-        if self.__status == OBDStatus.NOT_CONNECTED:
+        if self.__status == ConnectionStatus.NONE:
             logger.info("cannot enter low power when unconnected")
             return None
 
@@ -417,7 +418,7 @@ class ELM327:
 
             Returns the status from the ELM327.
         """
-        if self.__status == OBDStatus.NOT_CONNECTED:
+        if self.__status == ConnectionStatus.NONE:
             logger.info("cannot exit low power when unconnected")
             return None
 
@@ -435,7 +436,7 @@ class ELM327:
             attributes to unconnected states.
         """
 
-        self.__status = OBDStatus.NOT_CONNECTED
+        self.__status = ConnectionStatus.NONE
         self.__protocol = None
 
         if self.__port is not None:
@@ -456,7 +457,7 @@ class ELM327:
             Returns a list of Message objects
         """
 
-        if self.__status == OBDStatus.NOT_CONNECTED:
+        if self.__status == ConnectionStatus.NONE:
             logger.info("cannot send_and_parse() when unconnected")
             return None
 
@@ -507,7 +508,7 @@ class ELM327:
                 self.__port.write(cmd)  # turn the string into bytes and write
                 self.__port.flush()  # wait for the output buffer to finish transmitting
             except Exception:
-                self.__status = OBDStatus.NOT_CONNECTED
+                self.__status = ConnectionStatus.NONE
                 self.__port.close()
                 self.__port = None
                 logger.critical("Device disconnected while writing")
@@ -534,7 +535,7 @@ class ELM327:
             try:
                 data = self.__port.read(self.__port.in_waiting or 1)
             except Exception:
-                self.__status = OBDStatus.NOT_CONNECTED
+                self.__status = ConnectionStatus.NONE
                 self.__port.close()
                 self.__port = None
                 logger.critical("Device disconnected while reading")

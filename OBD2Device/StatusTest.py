@@ -2,7 +2,7 @@
 #
 # Python Onboard Diagnostics II Advanced
 #
-# EventTest.py
+# StatusTest.py
 #
 # Copyright 2023 Keven L. Ates (atescomp@gmail.com)
 #
@@ -23,17 +23,14 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ############################################################################
 
-#
-# Define Test events for sensor result window
-#
-import wx
 
-class EventTest(wx.PyEvent):
-    # Simple event to carry arbitrary result data...
-    ID = 1003
+class StatusTest():
+    def __init__(self, name="", bAvailable=False, bComplete=False):
+        self.name = name
+        self.available = bAvailable
+        self.complete = bComplete
 
-    def __init__(self, data):
-        # Init Result Event...
-        wx.PyEvent.__init__(self)
-        self.SetEventType(EventTest.ID)
-        self.data = data
+    def __str__(self):
+        strAvailable = "Available" if self.available else "Unavailable"
+        strComplete = "Complete" if self.complete else "Incomplete"
+        return "Test %s: %s, %s" % (self.name, strAvailable, strComplete)

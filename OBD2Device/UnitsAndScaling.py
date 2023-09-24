@@ -66,9 +66,9 @@ class UAS:
         return Unit.Quantity(value, self.unit)
 
 
-# dict for looking up standardized UAS IDs with conversion objects
+# Standardized Unit IDs with conversion objects
 UAS_IDS = {
-    # unsigned -----------------------------------------
+    # Unsigned Units
     0x01: UAS(False, 1, Unit.count),
     0x02: UAS(False, 0.1, Unit.count),
     0x03: UAS(False, 0.01, Unit.count),

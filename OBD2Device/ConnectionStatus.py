@@ -2,7 +2,7 @@
 #
 # Python Onboard Diagnostics II Advanced
 #
-# EventTest.py
+# ConnectionStatus.py
 #
 # Copyright 2023 Keven L. Ates (atescomp@gmail.com)
 #
@@ -23,17 +23,10 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ############################################################################
 
-#
-# Define Test events for sensor result window
-#
-import wx
+# OBD2 Connection Status Flags
 
-class EventTest(wx.PyEvent):
-    # Simple event to carry arbitrary result data...
-    ID = 1003
-
-    def __init__(self, data):
-        # Init Result Event...
-        wx.PyEvent.__init__(self)
-        self.SetEventType(EventTest.ID)
-        self.data = data
+class ConnectionStatus:
+    NONE    = "No Connection"
+    ELM     = "ELM Connected"
+    OBD     = "OBD Connected"
+    VEHICLE = "Vehicle Connected"

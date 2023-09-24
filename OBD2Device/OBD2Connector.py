@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 ########################################################################
 #                                                                      #
 # python-OBD: A python OBD-II serial module derived from pyobd         #
@@ -11,7 +9,7 @@
 #                                                                      #
 ########################################################################
 #                                                                      #
-# obd.py                                                               #
+# OBD2Connector.py                                                     #
 #                                                                      #
 # This file is part of python-OBD (a derivative of pyOBD)              #
 #                                                                      #
@@ -30,40 +28,39 @@
 #                                                                      #
 ########################################################################
 
-
 import logging
 
-from .OBDResponse import OBDResponse
-from .__version__ import __version__
-from .commands import commands
 from .elm327 import ELM327
 from .protocols import ECU_HEADER
-from .utils import scan_serial, OBDStatus
+from .utils import scan_serial
+
+from .CommandList import CommandListObj
+from .ConnectionStatus import ConnectionStatus
+from .Response import Response
 
 logger = logging.getLogger(__name__)
 
 
-class OBD(object):
-    """
-        Class representing an OBD-II connection
-        with it's assorted commands/sensors.
-    """
+#
+# Class: OBD II Connector
+#
+class OBD2Connector(object):
 
     def __init__(self, portstr=None, baudrate=None, protocol=None, fast=True,
                  timeout=0.1, check_voltage=True, start_low_power=False):
         self.interface = None
-        self.supported_commands = set(commands.base_commands())
+        self.supported_commands = set(CommandListObj.base_commands())
         self.fast = fast  # global switch for disabling optimizations
         self.timeout = timeout
         self.__last_command = b""  # used for running the previous command with a CR
         self.__last_header = ECU_HEADER.ENGINE  # for comparing with the previously used header
         self.__frame_counts = {}  # keeps track of the number of return frames for each command
 
-        logger.info("======================= python-OBD (v%s) =======================" % __version__)
+        logger.info("======================== OBD-II Connector ========================")
         self.__connect(portstr, baudrate, protocol,
                        check_voltage, start_low_power)  # initialize by connecting and loading sensors
-        self.__load_commands()  # try to load the car's supported commands
-        logger.info("===================================================================")
+        self.__load_commands()  # try to load the vehicles's supported commands
+        logger.info("==================================================================")
 
     def __connect(self, portstr, baudrate, protocol, check_voltage,
                   start_low_power):
@@ -86,7 +83,7 @@ class OBD(object):
                                         self.timeout, check_voltage,
                                         start_low_power)
 
-                if self.interface.status() >= OBDStatus.ELM_CONNECTED:
+                if self.interface.status() >= ConnectionStatus.ELM:
                     break  # success! stop searching for serial
         else:
             logger.info("Explicit port defined")
@@ -95,7 +92,7 @@ class OBD(object):
                                     start_low_power)
 
         # if the connection failed, close it
-        if self.interface.status() == OBDStatus.NOT_CONNECTED:
+        if self.interface.status() == ConnectionStatus.NONE:
             # the ELM327 class will report its own errors
             self.close()
 
@@ -105,12 +102,12 @@ class OBD(object):
             and compiles a list of command objects.
         """
 
-        if self.status() != OBDStatus.CAR_CONNECTED:
+        if self.status() != ConnectionStatus.VEHICLE:
             logger.warning("Cannot load commands: No connection to car")
             return
 
         logger.info("querying for supported commands")
-        pid_getters = commands.pid_getters()
+        pid_getters = CommandListObj.pid_getters()
         for get in pid_getters:
             # PID listing commands should sequentially become supported
             # Mode 1 PID 0 is assumed to always be supported
@@ -118,8 +115,8 @@ class OBD(object):
                 continue
 
             # when querying, only use the blocking OBD.query()
-            # prevents problems when query is redefined in a subclass (like Async)
-            response = OBD.query(self, get)
+            # prevents problems when query is redefined in a subclass (like OBD2ConnectorAsync)
+            response = OBD2Connector.query(self, get)
 
             if response.is_null():
                 logger.info("No valid data for PID listing command: %s" % get)
@@ -132,12 +129,12 @@ class OBD(object):
                     mode = get.mode
                     pid = get.pid + i + 1
 
-                    if commands.has_pid(mode, pid):
-                        self.supported_commands.add(commands[mode][pid])
+                    if CommandListObj.has_pid(mode, pid):
+                        self.supported_commands.add(CommandListObj[mode][pid])
 
                     # set support for mode 2 commands
-                    if mode == 1 and commands.has_pid(2, pid):
-                        self.supported_commands.add(commands[2][pid])
+                    if mode == 1 and CommandListObj.has_pid(2, pid):
+                        self.supported_commands.add(CommandListObj[2][pid])
 
         logger.info("finished querying with %d commands supported" % len(self.supported_commands))
 
@@ -147,10 +144,10 @@ class OBD(object):
         r = self.interface.send_and_parse(b'AT SH ' + header + b' ')
         if not r:
             logger.info("Set Header ('AT SH %s') did not return data", header)
-            return OBDResponse()
+            return Response()
         if "\n".join([m.raw() for m in r]) != "OK":
             logger.info("Set Header ('AT SH %s') did not return 'OK'", header)
-            return OBDResponse()
+            return Response()
         self.__last_header = header
 
     def close(self):
@@ -169,21 +166,21 @@ class OBD(object):
     def status(self):
         """ returns the OBD connection status """
         if self.interface is None:
-            return OBDStatus.NOT_CONNECTED
+            return ConnectionStatus.NONE
         else:
             return self.interface.status()
 
     def low_power(self):
         """ Enter low power mode """
         if self.interface is None:
-            return OBDStatus.NOT_CONNECTED
+            return ConnectionStatus.NONE
         else:
             return self.interface.low_power()
 
     def normal_power(self):
         """ Exit low power mode """
         if self.interface is None:
-            return OBDStatus.NOT_CONNECTED
+            return ConnectionStatus.NONE
         else:
             return self.interface.normal_power()
 
@@ -222,9 +219,9 @@ class OBD(object):
             Returns a boolean for whether a connection with the car was made.
 
             Note: this function returns False when:
-            obd.status = OBDStatus.ELM_CONNECTED
+            obd.status = OBD2ConnectionStatus.ELM
         """
-        return self.status() == OBDStatus.CAR_CONNECTED
+        return self.status() == ConnectionStatus.VEHICLE
 
     def print_commands(self):
         """
@@ -266,13 +263,13 @@ class OBD(object):
             protects against sending unsupported commands.
         """
 
-        if self.status() == OBDStatus.NOT_CONNECTED:
+        if self.status() == ConnectionStatus.NONE:
             logger.warning("Query failed, no connection available")
-            return OBDResponse()
+            return Response()
 
         # if the user forces, skip all checks
         if not force and not self.test_cmd(cmd):
-            return OBDResponse()
+            return Response()
 
         self.__set_header(cmd.header)
 
@@ -293,7 +290,7 @@ class OBD(object):
 
         if not messages:
             logger.info("No valid OBD Messages returned")
-            return OBDResponse()
+            return Response()
 
         return cmd(messages)  # compute a response object
 

@@ -1,5 +1,7 @@
 ############################################################################
 #
+# Python Onboard Diagnostics II Advanced
+#
 # Config.py
 #
 # Copyright 2023 Keven L. Ates (atescomp@gmail.com)
@@ -28,12 +30,13 @@ import sys
 import configparser  # ...safe application configuration
 from os import path, mkdir
 
-import Connection
-import EventDebug
-import OBD2Port
-import Utility
+import AppSettings
+from Connection import Connection
+from EventDebug import EventDebug
+from OBD2Port import OBD2Port
 
-class Dialog(wx.Dialog):
+
+class ConfigDlg(wx.Dialog):
     def __init__(self, parent):
         wx.Dialog.__init__(
             self, parent, wx.ID_ANY, title="Configure",
@@ -44,8 +47,6 @@ class Dialog(wx.Dialog):
         self.initialize()
 
     def initialize(self):
-        global DEBUG_LEVEL
-
         # Set up to read settings from file...
         self.config = configparser.RawConfigParser()
         self.configSettings = Connection(None)
@@ -95,7 +96,7 @@ class Dialog(wx.Dialog):
             self.configSettings.CHECKVOLTS = self.config.getboolean("OBD", "CHECKVOLTS", fallback=True)
             self.configSettings.TIMEOUT = self.config.getint("OBD", "TIMEOUT", fallback=10)
             self.configSettings.RECONNECTS = self.config.getint("OBD", "RECONNECTS", fallback=3)
-            DEBUG_LEVEL = self.config.getint("DEBUG", "LEVEL", fallback=1)
+            AppSettings.DEBUG_LEVEL = self.config.getint("DEBUG", "LEVEL", fallback=1)
 
 
         # Common Positions and Sizes...
@@ -206,7 +207,7 @@ class Dialog(wx.Dialog):
         staticDebugLevel = wx.StaticText(
             panelDebugLevel, wx.ID_ANY, 'Debug:', size=sizeStaticText, style=wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)
         self.ctrlDebugLevel = wx.TextCtrl(
-            panelDebugLevel, wx.ID_ANY, str(DEBUG_LEVEL), posTextCtrl, sizeTextCtrl)
+            panelDebugLevel, wx.ID_ANY, str(AppSettings.DEBUG_LEVEL), posTextCtrl, sizeTextCtrl)
 
         boxButtons = wx.BoxSizer(wx.HORIZONTAL)
         boxButtons.Add(wx.Button(self, wx.ID_OK,     size=sizeButton))
@@ -246,7 +247,7 @@ class Dialog(wx.Dialog):
             iIndex = 0
             if self.bGoodPorts:
                 controls.listctrlStatus.SetItem(iIndex, 1, "CONNECTION STATE by SensorProducer")
-                controls.StatusBar.SetStatusText(self.stateTitle[iIndex] + Utility.CHAR_QMARK, iIndex)
+                controls.StatusBar.SetStatusText(self.stateTitle[iIndex] + AppSettings.CHAR_QMARK, iIndex)
 
             # Set and save PROTOCOL...
             iIndex += 1
@@ -294,7 +295,7 @@ class Dialog(wx.Dialog):
             self.config.set("OBD", "FAST", self.configSettings.FAST)
             strFast = str(self.configSettings.FAST)
             controls.listctrlStatus.SetItem(iIndex, 1, strFast)
-            controls.StatusBar.SetStatusText(self.stateTitle[iIndex] + (Utility.CHAR_CHECK if self.configSettings.FAST else Utility.CHAR_BALLOTX), iIndex)
+            controls.StatusBar.SetStatusText(self.stateTitle[iIndex] + (AppSettings.CHAR_CHECK if self.configSettings.FAST else AppSettings.CHAR_BALLOTX), iIndex)
 
             # Set and save CHECKVOLTS...
             iIndex += 1
@@ -302,7 +303,7 @@ class Dialog(wx.Dialog):
             self.config.set("OBD", "CHECKVOLTS", self.configSettings.CHECKVOLTS)
             strCheckVolts = str(self.configSettings.CHECKVOLTS)
             controls.listctrlStatus.SetItem(iIndex, 1, strCheckVolts)
-            controls.StatusBar.SetStatusText(self.stateTitle[iIndex] + (Utility.CHAR_CHECK if self.configSettings.CHECKVOLTS else Utility.CHAR_BALLOTX), iIndex)
+            controls.StatusBar.SetStatusText(self.stateTitle[iIndex] + (AppSettings.CHAR_CHECK if self.configSettings.CHECKVOLTS else AppSettings.CHAR_BALLOTX), iIndex)
 
             # Set and save TIMEOUT...
             iIndex += 1
@@ -322,9 +323,9 @@ class Dialog(wx.Dialog):
 
             # Set and save DEBUGLEVEL...
             iIndex += 1
-            DEBUG_LEVEL = int(self.ctrlDebugLevel.GetValue())
-            self.config.set("DEBUG", "LEVEL", DEBUG_LEVEL)
-            strDebugLevel = str(DEBUG_LEVEL)
+            AppSettings.DEBUG_LEVEL = int(self.ctrlDebugLevel.GetValue())
+            self.config.set("DEBUG", "LEVEL", AppSettings.DEBUG_LEVEL)
+            strDebugLevel = str(AppSettings.DEBUG_LEVEL)
             controls.listctrlStatus.SetItem(iIndex, 1, strDebugLevel)
             controls.StatusBar.SetStatusText(self.stateTitle[iIndex] + strDebugLevel, iIndex)
 
@@ -342,22 +343,22 @@ class Dialog(wx.Dialog):
 
     def setStatusBar(self, theStatusBar, ):
         theStatusBar.SetStatusWidths([50, 58, -1, 58, -1, 96, 50, 62, 90, 68, 94])
-        theStatusBar.SetStatusText(self.stateTitle[ 0] + Utility.CHAR_BALLOTX, 0)
+        theStatusBar.SetStatusText(self.stateTitle[ 0] + AppSettings.CHAR_BALLOTX, 0)
         theStatusBar.SetStatusText(self.stateTitle[ 1] + self.configSettings.PROTOCOL, 1)
         theStatusBar.SetStatusText(self.stateTitle[ 2] + "Unknown", 2)
         theStatusBar.SetStatusText(self.stateTitle[ 3] + "---", 3)
         theStatusBar.SetStatusText(self.stateTitle[ 4] + self.configSettings.PORTNAME, 4)
         theStatusBar.SetStatusText(self.stateTitle[ 5] + str(self.configSettings.BAUD), 5)
-        theStatusBar.SetStatusText(self.stateTitle[ 6] + (Utility.CHAR_CHECK if self.configSettings.FAST else Utility.CHAR_BALLOTX), 6)
-        theStatusBar.SetStatusText(self.stateTitle[ 7] + (Utility.CHAR_CHECK if self.configSettings.CHECKVOLTS else Utility.CHAR_BALLOTX), 7)
+        theStatusBar.SetStatusText(self.stateTitle[ 6] + (AppSettings.CHAR_CHECK if self.configSettings.FAST else AppSettings.CHAR_BALLOTX), 6)
+        theStatusBar.SetStatusText(self.stateTitle[ 7] + (AppSettings.CHAR_CHECK if self.configSettings.CHECKVOLTS else AppSettings.CHAR_BALLOTX), 7)
         theStatusBar.SetStatusText(self.stateTitle[ 8] + str(self.configSettings.TIMEOUT), 8)
         theStatusBar.SetStatusText(self.stateTitle[ 9] + str(self.configSettings.RECONNECTS), 9)
-        theStatusBar.SetStatusText(self.stateTitle[10] + str(DEBUG_LEVEL), 10)
+        theStatusBar.SetStatusText(self.stateTitle[10] + str(AppSettings.DEBUG_LEVEL), 10)
 
     def setStatusListCtrl(self, theStatusListCtrl):
         theStatusListCtrl.InsertColumn(0, "Description", format=wx.LIST_FORMAT_RIGHT, width=150)
         theStatusListCtrl.InsertColumn(1, "Value")
-        theStatusListCtrl.Append(["Link:",          Utility.CHAR_BALLOTX])           #  0
+        theStatusListCtrl.Append(["Link:",          AppSettings.CHAR_BALLOTX])           #  0
         theStatusListCtrl.Append(["Protocol:",      self.configSettings.PROTOCOL])   #  1
         theStatusListCtrl.Append(["Cable Version:", "Unknown"])                      #  2
         theStatusListCtrl.Append(["Cable Volts:",   "---"])                          #  3
@@ -367,7 +368,7 @@ class Dialog(wx.Dialog):
         theStatusListCtrl.Append(["Check Voltage:", self.configSettings.CHECKVOLTS]) #  7
         theStatusListCtrl.Append(["Timeout:",       self.configSettings.TIMEOUT])    #  8
         theStatusListCtrl.Append(["Reconnects:",    self.configSettings.RECONNECTS]) #  9
-        theStatusListCtrl.Append(["Debug:",         DEBUG_LEVEL])                    # 10
+        theStatusListCtrl.Append(["Debug:",         AppSettings.DEBUG_LEVEL])        # 10
 
     def updateStatus(self, controls, iItem, iColumn, strValue):
         controls.listctrlStatus.SetItem(iItem, iColumn, strValue)

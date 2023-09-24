@@ -1,5 +1,7 @@
 ############################################################################
 #
+# Python Onboard Diagnostics II Advanced
+#
 # OBD2Port.py
 #
 # Copyright 2023 Keven L. Ates (atescomp@gmail.com)
@@ -22,19 +24,20 @@
 ############################################################################
 
 import wx
-import obd
+import OBD2Device
 
 #import string # ...for logSensor()
 import time
 
-import Sensor
-import EventDebug
+from SensorManager import SensorManager
+from EventDebug import EventDebug
+from OBD2Device.CommandList import CommandListObj
 
 class OBD2Port :
-    # OBDPort abstracts all communication with OBD-II device using OBD library...
+    # OBDPort abstracts all communication with OBD-II devices...
 
     def getPorts() :
-        return obd.scan_serial()
+        return OBD2Device.scan_serial()
 
     def __init__(self, app, connection):
         self.ELMver = "none"
@@ -46,7 +49,7 @@ class OBD2Port :
         wx.PostEvent(self.app, EventDebug([1, "Opening interface (serial port)"]))
 
         self.port = \
-            obd.OBD(
+            OBD2Device.OBD2Connector(
                 portstr       = connection.PORTNAME,
                 baudrate      = connection.BAUD,
                 protocol      = connection.PROTOCOL,
@@ -69,12 +72,12 @@ class OBD2Port :
         wx.PostEvent(self.app, EventDebug([1, "Successfully opened interface"]))
         wx.PostEvent(self.app, EventDebug([1, "Connecting to ECU..." ]))
 
-        response = self.port.query(obd.commands.ELM_VERSION)
+        response = self.port.query(CommandListObj.ELM_VERSION)
         if ( not response.is_null() ) :
             self.ELMver = str(response.value)
         wx.PostEvent(self.app, EventDebug([2, "ELM_VERSION response:" + self.ELMver]))
 
-        response = self.port.query(obd.commands.ELM_VOLTAGE)
+        response = self.port.query(CommandListObj.ELM_VOLTAGE)
         if ( not response.is_null() ) :
             self.ELMvolts = str(response.value)
         wx.PostEvent(self.app, EventDebug([2, "ELM_VOLTS response:" + self.ELMvolts]))
@@ -82,7 +85,7 @@ class OBD2Port :
         count = 1
         while True:  # ...loop until connection or exhausted attempts...
             wx.PostEvent( self.app, EventDebug( [2, "Connection attempt:" + str(count) ] ) )
-            response = self.port.query(obd.commands.PIDS_A)
+            response = self.port.query(CommandListObj.PIDS_A)
 
             if ( response.is_null() ) : # ...if no response...
                 wx.PostEvent( self.app, EventDebug( [2, "Connection attempt failed!" ] ) )
@@ -105,7 +108,7 @@ class OBD2Port :
         # Resets device and closes all associated file handles...
 
         if (self.port and self.port != None) and self.Connected == True:
-            response = self.port.query(obd.commands.ELM_VERSION) # atz
+            response = self.port.query(CommandListObj.ELM_VERSION) # atz
             self.port.close()
 
         self.port = None
@@ -129,7 +132,7 @@ class OBD2Port :
     def getSensorInfo(self, iSensorIndex):
         # Returns 3-tuple of given sensors. 3-tuple consists of
         # ( Sensor Name (string), Sensor Value (string), Sensor Unit (string) )...
-        sensor = Sensor.Manager.SENSORS[self.app.iCurrSensorsPage][iSensorIndex]
+        sensor = SensorManager.SENSORS[self.app.iCurrSensorsPage][iSensorIndex]
         response = self.__processCommand(sensor.cmd)
         return (sensor.name, response, sensor.unit)
 
@@ -137,14 +140,14 @@ class OBD2Port :
     def getSensorInfo(self, iSensorGroup, iSensorIndex):
         # Returns 3-tuple of given sensors. 3-tuple consists of
         # ( Sensor Name (string), Sensor Value (string), Sensor Unit (string) )...
-        sensor = Sensor.Manager.SENSORS[iSensorGroup][iSensorIndex]
+        sensor = SensorManager.SENSORS[iSensorGroup][iSensorIndex]
         response = self.__processCommand(sensor.cmd)
         return (sensor.name, response, sensor.unit)
 
     def __getSensorNames(self):
         # Internal use only: not a public interface...
         names = []
-        for sensor in Sensor.Manager.SENSORS[self.app.iCurrSensorsPage]:
+        for sensor in SensorManager.SENSORS[self.app.iCurrSensorsPage]:
             names.append(sensor.name)
         return names
 
@@ -245,7 +248,7 @@ class OBD2Port :
 
         # Get all DTC...
         listDTCCodes = []
-        response = self.__processCommand(obd.commands.GET_DTC)
+        response = self.__processCommand(CommandListObj.GET_DTC)
         if ( response.is_null() ) :
             wx.PostEvent(self.app, EventDebug([1, "GET_DTC not supported!"]))
         else :
@@ -257,7 +260,7 @@ class OBD2Port :
                     listDTCCodes.append(["Active", DTCCode[0]])
 
         # Get current DTC...
-        response = self.__processCommand(obd.commands.GET_CURRENT_DTC)
+        response = self.__processCommand(CommandListObj.GET_CURRENT_DTC)
         if ( response.is_null() ) :
              wx.PostEvent(self.app, EventDebug([1, "GET_CURRENT_DTC not supported!"]))
         else :
@@ -269,7 +272,7 @@ class OBD2Port :
 
     def clearDTC(self):
         # Clears all DTCs and freeze frame data...
-        response = self.__processCommand(obd.commands.CLEAR_DTC)
+        response = self.__processCommand(CommandListObj.CLEAR_DTC)
         return response
 
     #def logSensor(self, indexSensor, strFilename):

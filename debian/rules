@@ -1,5 +1,7 @@
 #!/usr/bin/make -f
+#
 # -*- makefile -*-
+#
 # Sample debian/rules that uses debhelper.
 # This file was originally written by Joey Hess and Craig Small.
 # As a special exception, when this file is copied by dh-make into a
@@ -13,8 +15,9 @@ configure: configure-stamp
 
 configure-stamp:
 	dh_testdir
-	# Add here commands to configure the package.
 
+#	Add commands to configure the package
+#	----------------------------------------
 	touch configure-stamp
 
 build: build-stamp
@@ -35,33 +38,46 @@ install: build
 	dh_prep
 	dh_installdirs
 
-	#Create temp dir
-	mkdir -p $(CURDIR)/debian/pyobda
+#	Create program dir
+#	----------------------------------------
+	mkdir -p $(CURDIR)/debian/pyobda/info
 
-	#Install program files
-
-	cp EventDebug.py $(CURDIR)/debian/pyobda/usr/share/pyobda/EventDebug.py
-	cp EventDTC.py $(CURDIR)/debian/pyobda/usr/share/pyobda/EventDTC.py
-	cp EventResult.py $(CURDIR)/debian/pyobda/usr/share/pyobda/EventResult.py
-	cp EventStatus.py $(CURDIR)/debian/pyobda/usr/share/pyobda/EventStatus.py
-	cp EventTest.py $(CURDIR)/debian/pyobda/usr/share/pyobda/EventTest.py
-	cp ListCtrl.py $(CURDIR)/debian/pyobda/usr/share/pyobda/ListCtrl.py
-	cp OBD2Port.py $(CURDIR)/debian/pyobda/usr/share/pyobda/OBD2Port.py
-	cp OBD2Codes.py $(CURDIR)/debian/pyobda/usr/share/pyobda/OBD2Codes.py
-	cp Sensors.py $(CURDIR)/debian/pyobda/usr/share/pyobda/Sensors.py
+#	Install program files
+#	----------------------------------------
+	cp AppSettings.py    $(CURDIR)/debian/pyobda/usr/share/pyobda/AppSettings.py
+	cp ConfigDlg.py      $(CURDIR)/debian/pyobda/usr/share/pyobda/ConfigDlg.py
+	cp Connection.py     $(CURDIR)/debian/pyobda/usr/share/pyobda/Connection.py
+	cp EventDebug.py     $(CURDIR)/debian/pyobda/usr/share/pyobda/EventDebug.py
+	cp EventDTC.py       $(CURDIR)/debian/pyobda/usr/share/pyobda/EventDTC.py
+	cp EventResult.py    $(CURDIR)/debian/pyobda/usr/share/pyobda/EventResult.py
+	cp EventStatus.py    $(CURDIR)/debian/pyobda/usr/share/pyobda/EventStatus.py
+	cp EventTest.py      $(CURDIR)/debian/pyobda/usr/share/pyobda/EventTest.py
+	cp Frame.py          $(CURDIR)/debian/pyobda/usr/share/pyobda/Frame.py
+	cp ListCtrl.py       $(CURDIR)/debian/pyobda/usr/share/pyobda/ListCtrl.py
+	cp OBD2Codes.py      $(CURDIR)/debian/pyobda/usr/share/pyobda/OBD2Codes.py
+	cp OBD2Port.py       $(CURDIR)/debian/pyobda/usr/share/pyobda/OBD2Port.py
+	cp Sensor.py         $(CURDIR)/debian/pyobda/usr/share/pyobda/Sensor.py
+	cp SensorManager.py  $(CURDIR)/debian/pyobda/usr/share/pyobda/SensorManager.py
 	cp SensorProducer.py $(CURDIR)/debian/pyobda/usr/share/pyobda/SensorProducer.py
-	cp pyobda $(CURDIR)/debian/pyobda/usr/share/pyobda/pyobda
-	cp pyobda.gif $(CURDIR)/debian/pyobda/usr/share/pyobda/pyobda.gif
+	cp pyobda.py         $(CURDIR)/debian/pyobda/usr/share/pyobda/pyobda.py
+	cp pyobda.gif        $(CURDIR)/debian/pyobda/usr/share/pyobda/pyobda.gif
 
-	#Install menufile
+#	Install menufile
+#	----------------------------------------
 	cp pyobda.desktop $(CURDIR)/debian/pyobda/usr/share/applications/pyobda.desktop
-	cp -d pyobdalink $(CURDIR)/debian/pyobda/usr/bin/pyobda
+	cp -d pyobdalink  $(CURDIR)/debian/pyobda/usr/bin/pyobda
 
-	#TODO:Install man files
+#	Install info files
+#	----------------------------------------
+	cp COPYING    $(CURDIR)/debian/pyobda/usr/share/pyobda/info/COPYING
+	cp README.md  $(CURDIR)/debian/pyobda/usr/share/pyobda/info/README.md
+	cp Sensor.png $(CURDIR)/debian/pyobda/usr/share/pyobda/info/Sensor.png
+
+# 	TODO:Install man files
 
 # Build architecture-independent files here.
 binary-indep: install
-# We have nothing to do by default.
+# NOTE: We have nothing to do by default.
 
 # Build architecture-dependent files here.
 binary-arch: install

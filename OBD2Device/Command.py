@@ -11,7 +11,7 @@
 #                                                                      #
 ########################################################################
 #                                                                      #
-# OBDCommand.py                                                        #
+# Command.py                                                           #
 #                                                                      #
 # This file is part of python-OBD (a derivative of pyOBD)              #
 #                                                                      #
@@ -32,14 +32,15 @@
 
 from .utils import *
 from .protocols import ECU, ECU_HEADER
-from .OBDResponse import OBDResponse
+
+from .Response import Response
 
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-class OBDCommand:
+class Command:
     def __init__(self,
                  name,
                  desc,
@@ -59,7 +60,7 @@ class OBDCommand:
         self.header = header  # ECU header used for the queries
 
     def clone(self):
-        return OBDCommand(self.name,
+        return Command(self.name,
                           self.desc,
                           self.command,
                           self.bytes,
@@ -93,7 +94,7 @@ class OBDCommand:
 
         # create the response object with the raw data received
         # and reference to original command
-        r = OBDResponse(self, messages)
+        r = Response(self, messages)
         if messages:
             r.value = self.decode(messages)
         else:
@@ -147,7 +148,7 @@ class OBDCommand:
         return hash(self.header + self.command)
 
     def __eq__(self, other):
-        if isinstance(other, OBDCommand):
+        if isinstance(other, Command):
             return self.command == other.command and self.header == other.header
         else:
             return False

@@ -2,7 +2,7 @@
 #
 # Python Onboard Diagnostics II Advanced
 #
-# EventTest.py
+# Response.py
 #
 # Copyright 2023 Keven L. Ates (atescomp@gmail.com)
 #
@@ -23,17 +23,35 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ############################################################################
 
-#
-# Define Test events for sensor result window
-#
-import wx
 
-class EventTest(wx.PyEvent):
-    # Simple event to carry arbitrary result data...
-    ID = 1003
+import time
 
-    def __init__(self, data):
-        # Init Result Event...
-        wx.PyEvent.__init__(self)
-        self.SetEventType(EventTest.ID)
-        self.data = data
+from .UnitsAndScaling import Unit
+
+
+# Response class for OBD2 Commands
+
+class Response:
+
+    def __init__(self, command=None, messages=None):
+        self.command = command
+        self.messages = messages if messages else []
+        self.value = None
+        self.time = time.time()
+
+    @property
+    def unit(self):
+        # for backwards compatibility
+        #from Device import Unit  # local import to avoid cyclic-dependency
+        if isinstance(self.value, Unit.Quantity):
+            return str(self.value.u)
+        elif self.value is None:
+            return None
+        else:
+            return str(type(self.value))
+
+    def is_null(self):
+        return (not self.messages) or (self.value == None)
+
+    def __str__(self):
+        return str(self.value)

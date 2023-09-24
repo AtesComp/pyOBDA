@@ -2,7 +2,7 @@
 #
 # Python Onboard Diagnostics II Advanced
 #
-# EventTest.py
+# Status.py
 #
 # Copyright 2023 Keven L. Ates (atescomp@gmail.com)
 #
@@ -23,17 +23,20 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ############################################################################
 
-#
-# Define Test events for sensor result window
-#
-import wx
+from .StatusTest import StatusTest
+from .Codes import Codes
 
-class EventTest(wx.PyEvent):
-    # Simple event to carry arbitrary result data...
-    ID = 1003
 
-    def __init__(self, data):
-        # Init Result Event...
-        wx.PyEvent.__init__(self)
-        self.SetEventType(EventTest.ID)
-        self.data = data
+class Status:
+    def __init__(self):
+        self.MIL = False
+        self.DTC_count = 0
+        self.ignition_type = ""
+
+        # make sure each test is available by name
+        # until real data comes it. This also prevents things from
+        # breaking when the user looks up a standard test that's null.
+        null_test = StatusTest()
+        for name in Codes.Test.Base + Codes.Test.Spark + Codes.Test.Compression:
+            if name:  # filter out None/reserved tests
+                self.__dict__[name] = null_test
