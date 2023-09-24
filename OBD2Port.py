@@ -31,7 +31,7 @@ import time
 
 from SensorManager import SensorManager
 from EventDebug import EventDebug
-from OBD2Device.CommandList import CommandListObj
+from OBD2Device.CommandList import CommandList
 
 class OBD2Port :
     # OBDPort abstracts all communication with OBD-II devices...
@@ -47,6 +47,8 @@ class OBD2Port :
 
         self.app = app
         wx.PostEvent(self.app, EventDebug([1, "Opening interface (serial port)"]))
+
+        self.cmds = CommandList()
 
         self.port = \
             OBD2Device.OBD2Connector(
@@ -72,12 +74,12 @@ class OBD2Port :
         wx.PostEvent(self.app, EventDebug([1, "Successfully opened interface"]))
         wx.PostEvent(self.app, EventDebug([1, "Connecting to ECU..." ]))
 
-        response = self.port.query(CommandListObj.ELM_VERSION)
+        response = self.port.query(self.cmds.ELM_VERSION)
         if ( not response.is_null() ) :
             self.ELMver = str(response.value)
         wx.PostEvent(self.app, EventDebug([2, "ELM_VERSION response:" + self.ELMver]))
 
-        response = self.port.query(CommandListObj.ELM_VOLTAGE)
+        response = self.port.query(self.cmds.ELM_VOLTAGE)
         if ( not response.is_null() ) :
             self.ELMvolts = str(response.value)
         wx.PostEvent(self.app, EventDebug([2, "ELM_VOLTS response:" + self.ELMvolts]))
@@ -85,7 +87,7 @@ class OBD2Port :
         count = 1
         while True:  # ...loop until connection or exhausted attempts...
             wx.PostEvent( self.app, EventDebug( [2, "Connection attempt:" + str(count) ] ) )
-            response = self.port.query(CommandListObj.PIDS_A)
+            response = self.port.query(self.cmds.PIDS_A)
 
             if ( response.is_null() ) : # ...if no response...
                 wx.PostEvent( self.app, EventDebug( [2, "Connection attempt failed!" ] ) )
@@ -108,7 +110,7 @@ class OBD2Port :
         # Resets device and closes all associated file handles...
 
         if (self.port and self.port != None) and self.Connected == True:
-            response = self.port.query(CommandListObj.ELM_VERSION) # atz
+            response = self.port.query(self.cmds.ELM_VERSION) # atz
             self.port.close()
 
         self.port = None
@@ -248,7 +250,7 @@ class OBD2Port :
 
         # Get all DTC...
         listDTCCodes = []
-        response = self.__processCommand(CommandListObj.GET_DTC)
+        response = self.__processCommand(self.cmds.GET_DTC)
         if ( response.is_null() ) :
             wx.PostEvent(self.app, EventDebug([1, "GET_DTC not supported!"]))
         else :
@@ -260,7 +262,7 @@ class OBD2Port :
                     listDTCCodes.append(["Active", DTCCode[0]])
 
         # Get current DTC...
-        response = self.__processCommand(CommandListObj.GET_CURRENT_DTC)
+        response = self.__processCommand(self.cmds.GET_CURRENT_DTC)
         if ( response.is_null() ) :
              wx.PostEvent(self.app, EventDebug([1, "GET_CURRENT_DTC not supported!"]))
         else :
@@ -272,7 +274,7 @@ class OBD2Port :
 
     def clearDTC(self):
         # Clears all DTCs and freeze frame data...
-        response = self.__processCommand(CommandListObj.CLEAR_DTC)
+        response = self.__processCommand(self.cmds.CLEAR_DTC)
         return response
 
     #def logSensor(self, indexSensor, strFilename):

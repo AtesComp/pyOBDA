@@ -1,6 +1,6 @@
 # Protocols
 
-The OBD II Protocols are meant to abstract the transport and physical layers of an OBD-II connection. Each protocol is a callable object that accepts string list input from the adapter. It returns a list of parsed `Message` objects. The `Message.data` field will contain a bytearray, corresponding to the application layer data returned by the command. This implementation is specific to the formatting of the ELM327 chip inside the adapter.
+The OBD-II Protocols are meant to abstract the transport and physical layers of an OBD-II connection. Each protocol is a callable object that accepts string list input from the adapter. It returns a list of parsed `Message` objects. The `Message.data` field will contain a bytearray, corresponding to the application layer data returned by the command. This implementation is specific to the formatting of the ELM327 chip inside the adapter.
 
 For example, the resultant `Message.data` fields for some single frame messages are:
 

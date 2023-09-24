@@ -34,7 +34,7 @@ from .elm327 import ELM327
 from .protocols import ECU_HEADER
 from .utils import scan_serial
 
-from .CommandList import CommandListObj
+from .CommandList import CommandList
 from .ConnectionStatus import ConnectionStatus
 from .Response import Response
 
@@ -49,7 +49,8 @@ class OBD2Connector(object):
     def __init__(self, portstr=None, baudrate=None, protocol=None, fast=True,
                  timeout=0.1, check_voltage=True, start_low_power=False):
         self.interface = None
-        self.supported_commands = set(CommandListObj.base_commands())
+        self.CMDS = CommandList()
+        self.supported_commands = set(self.CMDS.base_commands())
         self.fast = fast  # global switch for disabling optimizations
         self.timeout = timeout
         self.__last_command = b""  # used for running the previous command with a CR
@@ -107,7 +108,7 @@ class OBD2Connector(object):
             return
 
         logger.info("querying for supported commands")
-        pid_getters = CommandListObj.pid_getters()
+        pid_getters = self.CMDS.pid_getters()
         for get in pid_getters:
             # PID listing commands should sequentially become supported
             # Mode 1 PID 0 is assumed to always be supported
@@ -129,12 +130,12 @@ class OBD2Connector(object):
                     mode = get.mode
                     pid = get.pid + i + 1
 
-                    if CommandListObj.has_pid(mode, pid):
-                        self.supported_commands.add(CommandListObj[mode][pid])
+                    if self.CMDS.has_pid(mode, pid):
+                        self.supported_commands.add(self.CMDS[mode][pid])
 
                     # set support for mode 2 commands
-                    if mode == 1 and CommandListObj.has_pid(2, pid):
-                        self.supported_commands.add(CommandListObj[2][pid])
+                    if mode == 1 and self.CMDS.has_pid(2, pid):
+                        self.supported_commands.add(self.CMDS[2][pid])
 
         logger.info("finished querying with %d commands supported" % len(self.supported_commands))
 

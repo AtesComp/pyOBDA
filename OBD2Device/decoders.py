@@ -299,24 +299,23 @@ def status(messages):
     output = Status()
     output.MIL = bits[0]
     output.DTC_count = bits.value(1, 8)
-    output.ignition_type = Codes.IgnitionType[int(bits[12])]
+    output.ignition_type = Codes.IgnitionType[ int( bits[(8 + 4)] ) ]
 
-    # load the 3 base tests that are always present
-    for i, name in enumerate(Codes.Test.Base[::-1]):
-        t = StatusTest(name, bits[13 + i], not bits[9 + i])
+    # Load the 3 ever present Base Tests...
+    for i, name in enumerate( Codes.Test.Base[::-1] ):
+        t = StatusTest( name, bits[(8 + 5) + i], not bits[(8 + 1) + i] )
         output.__dict__[name] = t
 
     # different tests for different ignition types
     if bits[12]:  # compression
         for i, name in enumerate(Codes.Test.Compression[::-1]):  # reverse to correct for bit vs. indexing order
-            t = StatusTest(name, bits[(2 * 8) + i],
-                           not bits[(3 * 8) + i])
+            t = StatusTest( name, bits[(8 * 2) + i], not bits[(8 * 3) + i] )
             output.__dict__[name] = t
 
     else:  # spark
         for i, name in enumerate(Codes.Test.Spark[::-1]):  # reverse to correct for bit vs. indexing order
-            t = StatusTest(name, bits[(2 * 8) + i],
-                           not bits[(3 * 8) + i])
+            t = StatusTest(name, bits[(8 * 2) + i],
+                           not bits[(8 * 3) + i])
             output.__dict__[name] = t
 
     return output

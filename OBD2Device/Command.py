@@ -50,27 +50,28 @@ class Command:
                  ecu=ECU.ALL,
                  fast=False,
                  header=ECU_HEADER.ENGINE):
-        self.name = name  # human readable name (also used as key in commands dict)
-        self.desc = desc  # human readable description
-        self.command = command  # command string
-        self.bytes = _bytes  # number of bytes expected in return
-        self.decode = decoder  # decoding function
-        self.ecu = ecu  # ECU ID from which this command expects messages from
-        self.fast = fast  # can an extra digit be added to the end of the command? (to make the ELM return early)
-        self.header = header  # ECU header used for the queries
+        self.name    = name     # ...human readable name (also used as key in commands dict)
+        self.desc    = desc     # ...human readable description
+        self.command = command  # ...binary Command ID string
+        self.bytes   = _bytes   # ...number of bytes expected in response messages
+        self.decode  = decoder  # ...decoding function to use for response messages
+        self.ecu     = ecu      # ...expected ECU ID that generates response messages
+        self.fast    = fast     # ...boolean indicating whether an extra "return early" end-of-command value can be added
+        self.header  = header   # ...ECU Header used in requests
 
     def clone(self):
         return Command(self.name,
-                          self.desc,
-                          self.command,
-                          self.bytes,
-                          self.decode,
-                          self.ecu,
-                          self.fast,
-                          self.header)
+                        self.desc,
+                        self.command,
+                        self.bytes,
+                        self.decode,
+                        self.ecu,
+                        self.fast,
+                        self.header)
 
     @property
     def mode(self):
+        # The Mode is contained in the first 2 command bytes
         if len(self.command) >= 2 and isHex(self.command.decode()):
             return int(self.command[:2], 16)
         else:
@@ -78,22 +79,21 @@ class Command:
 
     @property
     def pid(self):
+        # The PID, if present, is contained in the second 2 command bytes
         if len(self.command) > 2 and isHex(self.command.decode()):
             return int(self.command[2:], 16)
         else:
             return None
 
     def __call__(self, messages):
-
-        # filter for applicable messages (from the right ECU(s))
+        # Filter applicable messages from the right ECU(s)...
         messages = [m for m in messages if (self.ecu & m.ecu) > 0]
 
-        # guarantee data size for the decoder
+        # Guarantee data size for the decoder...
         for m in messages:
             self.__constrain_message_data(m)
 
-        # create the response object with the raw data received
-        # and reference to original command
+        # Create the response object with the raw data received and reference to original command
         r = Response(self, messages)
         if messages:
             r.value = self.decode(messages)
@@ -103,18 +103,18 @@ class Command:
         return r
 
     def __constrain_message_data(self, message):
-        """ pads or chops the data field to the size specified by this command """
+        # Sizes the data field to the command's specified size...
         len_msg_data = len(message.data)
         if self.bytes > 0:
             if len_msg_data > self.bytes:
-                # chop off the right side
+                # Trim the right side...
                 message.data = message.data[:self.bytes]
                 logger.debug(
                     "Message was longer than expected (%s>%s). " +
                     "Trimmed message: %s", len_msg_data, self.bytes,
                     repr(message.data))
             elif len_msg_data < self.bytes:
-                # pad the right with zeros
+                # Pad the right with zeros...
                 message.data += (b'\x00' * (self.bytes - len_msg_data))
                 logger.debug(
                     "Message was shorter than expected (%s<%s). " +
