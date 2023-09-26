@@ -4,7 +4,7 @@
 #
 # OBD2Port.py
 #
-# Copyright 2023 Keven L. Ates (atescomp@gmail.com)
+# Copyright 2021-2023 Keven L. Ates (atescomp@gmail.com)
 #
 # This file is part of the Onboard Diagnostics II Advanced (pyOBDA) system.
 #
@@ -19,8 +19,8 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with pyOBDA; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+# along with pyOBDA; if not, write to the Free Software Foundation, Inc.,
+# 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ############################################################################
 
 import wx
@@ -29,17 +29,19 @@ import OBD2Device
 #import string # ...for logSensor()
 import time
 
-from SensorManager import SensorManager
 from EventDebug import EventDebug
+from SensorManager import SensorManager
 from OBD2Device.CommandList import CommandList
+from OBD2Device.Response import Response
 
 class OBD2Port :
     # OBDPort abstracts all communication with OBD-II devices...
 
-    def getPorts() :
+    @classmethod
+    def getPorts(cls) :
         return OBD2Device.scan_serial()
 
-    def __init__(self, app, connection):
+    def __init__(self, app, connection): # app is a Frame object, connection is a Connection object
         self.ELMver = "none"
         self.ELMvolts = "none"
         # Connected state for OBD connection is false (disconnected) & true (connected)
@@ -52,21 +54,22 @@ class OBD2Port :
 
         self.port = \
             OBD2Device.OBD2Connector(
-                portstr       = connection.PORTNAME,
-                baudrate      = connection.BAUD,
-                protocol      = connection.PROTOCOL,
-                fast          = connection.FAST,
-                timeout       = connection.TIMEOUT,
-                check_voltage = connection.CHECKVOLTS
+                strPort        = connection.PORTNAME,
+                iBaudRate      = connection.BAUD,
+                strProtocol    = connection.PROTOCOL,
+                bFast          = connection.FAST,
+                fTimeout       = connection.TIMEOUT,
+                bCheckVoltage  = connection.CHECKVOLTS,
+                bStartLowPower = False,
             )
         time.sleep(1) # ...wait for it...
 
         if (self.port != None):
-            wx.PostEvent(self.app, EventDebug([1, "Interface: " + self.port.port_name()]))
-            wx.PostEvent(self.app, EventDebug([1, " Protocol: [" + self.port.protocol_id() + "] " + self.port.protocol_name()]))
+            wx.PostEvent(self.app, EventDebug([1, "Interface: " + self.port.getPortName()]))
+            wx.PostEvent(self.app, EventDebug([1, " Protocol: [" + self.port.getProtocolID() + "] " + self.port.getProtocolName()]))
             wx.PostEvent(self.app, EventDebug([1, "   Status: " + self.port.status()]))
 
-        if (self.port == None) or (not self.port.is_connected()) :
+        if (self.port == None) or (not self.port.isConnected()) :
             wx.PostEvent(self.app, EventDebug([1, "ERROR: Cannot connect to interface"]))
             return
 
@@ -75,12 +78,12 @@ class OBD2Port :
         wx.PostEvent(self.app, EventDebug([1, "Connecting to ECU..." ]))
 
         response = self.port.query(self.cmds.ELM_VERSION)
-        if ( not response.is_null() ) :
+        if ( not response.isNull() ) :
             self.ELMver = str(response.value)
         wx.PostEvent(self.app, EventDebug([2, "ELM_VERSION response:" + self.ELMver]))
 
         response = self.port.query(self.cmds.ELM_VOLTAGE)
-        if ( not response.is_null() ) :
+        if ( not response.isNull() ) :
             self.ELMvolts = str(response.value)
         wx.PostEvent(self.app, EventDebug([2, "ELM_VOLTS response:" + self.ELMvolts]))
 
@@ -89,7 +92,7 @@ class OBD2Port :
             wx.PostEvent( self.app, EventDebug( [2, "Connection attempt:" + str(count) ] ) )
             response = self.port.query(self.cmds.PIDS_A)
 
-            if ( response.is_null() ) : # ...if no response...
+            if ( response.isNull() ) :
                 wx.PostEvent( self.app, EventDebug( [2, "Connection attempt failed!" ] ) )
                 time.sleep(5)
                 if (count >= connection.RECONNECTS):
@@ -118,16 +121,16 @@ class OBD2Port :
 
     def __processCommand(self, command):
         # Internal use only: not a public interface...
-        response = "NORESPONSE"
-        if self.port:
+        response = Response()
+        if self.port :
             wx.PostEvent(self.app, EventDebug([3, "Command: " + str(command)]))
             response = self.port.query(command)
-            if response != None :
-                wx.PostEvent(self.app, EventDebug([3, "Results: " + str(response.value)]))
+            if ( response.isNull() ) :
+                wx.PostEvent(self.app, EventDebug([3, "WARNING: No data!"]))
             else :
-                response = "NODATA"
-        else:
-            wx.PostEvent(self.app, EventDebug([3, "ERROR: NO port!"]))
+                wx.PostEvent(self.app, EventDebug([3, "Results: " + str(response.value)]))
+        else :
+            wx.PostEvent(self.app, EventDebug([3, "ERROR: No port!"]))
         return response
 
     # Return string of sensor name and value from sensor index...
@@ -158,7 +161,8 @@ class OBD2Port :
         statusText = ["Unavailable", "Available: Incomplete", "Available: Complete"]
 
         statusRes = self.getSensorInfo(0, 1)[1]  # ...Status Since Clear DTC
-        if (statusRes == "NORESPONSE" or statusRes == "NODATA") :
+        if ( statusRes.isNull() ) :
+            # NOTE: Event message already from getSensorInfo()
             return statusTrans
 
         #
@@ -242,16 +246,21 @@ class OBD2Port :
     def getDTC(self):
         # Returns a list of all pending DTC codes. Each element consists of
         # a 2-tuple: ( DTC Code (string), Code Description (string) )...
+        listDTCCodes = []
+
         statusRes = self.getSensorInfo(0, 1)[1]  # ...Status Info Response
-        print(":::Status:::")
-        print("     MIL: " + str(statusRes.value.MIL))
-        print("   DTC #: " + str(statusRes.value.DTC_count))
-        print("Ignition: " + str(statusRes.value.ignition_type))
+        if ( statusRes.isNull() ) :
+            # NOTE: Event message already from getSensorInfo()
+            return listDTCCodes
+
+        wx.PostEvent(self.app, EventDebug([1, ":::Status:::"]))
+        wx.PostEvent(self.app, EventDebug([1, "     MIL: " + str(statusRes.value.MIL)]))
+        wx.PostEvent(self.app, EventDebug([1, "   DTC #: " + str(statusRes.value.DTC_count)]))
+        wx.PostEvent(self.app, EventDebug([1, "Ignition: " + str(statusRes.value.ignition_type)]))
 
         # Get all DTC...
-        listDTCCodes = []
         response = self.__processCommand(self.cmds.GET_DTC)
-        if ( response.is_null() ) :
+        if ( response.isNull() ) :
             wx.PostEvent(self.app, EventDebug([1, "GET_DTC not supported!"]))
         else :
             iDTCCount = len(response.value)
@@ -263,7 +272,7 @@ class OBD2Port :
 
         # Get current DTC...
         response = self.__processCommand(self.cmds.GET_CURRENT_DTC)
-        if ( response.is_null() ) :
+        if ( response.isNull() ) :
              wx.PostEvent(self.app, EventDebug([1, "GET_CURRENT_DTC not supported!"]))
         else :
             if (len(response.value) > 0) :
@@ -275,6 +284,7 @@ class OBD2Port :
     def clearDTC(self):
         # Clears all DTCs and freeze frame data...
         response = self.__processCommand(self.cmds.CLEAR_DTC)
+        # NOTE: Error message already from __processCommand()
         return response
 
     #def logSensor(self, indexSensor, strFilename):

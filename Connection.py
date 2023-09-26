@@ -4,7 +4,7 @@
 #
 # Connection.py
 #
-# Copyright 2023 Keven L. Ates (atescomp@gmail.com)
+# Copyright 2021-2023 Keven L. Ates (atescomp@gmail.com)
 #
 # This file is part of the Onboard Diagnostics II Advanced (pyOBDA) system.
 #
@@ -19,47 +19,52 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with pyOBDA; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+# along with pyOBDA; if not, write to the Free Software Foundation, Inc.,
+# 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ############################################################################
 
 import AppSettings
+import OBD2Device
+from OBD2Port import OBD2Port
 
 
 # A simple Connection class to hold connection values...
 class Connection():
-    strPortNameDefault = "/dev/ttyUSB0"
-    iDebugLevelDefault = 5
+    strPortNameDefault:str = "/dev/ttyUSB0"
+    iDebugLevelDefault:int = 5
 
-    def __init__(self, connect) :
+    def __init__(self, connect) : # connect is a Connection object
         self.setConnection(connect)
 
     def setConnection(self, connect) :
+        self.PORTNAME:str = Connection.strPortNameDefault
+        self.PORT:(OBD2Port|None) = None
+        self.BAUD:int = 115200
+        self.PROTOCOL:str = "6"
+        self.FAST:bool = True
+        self.TIMEOUT:float = 10.0
+        self.CHECKVOLTS:bool = True
+        self.RECONNECTS:int = 3
+        AppSettings.DEBUG_LEVEL = Connection.iDebugLevelDefault
+        OBD2Device.setLogging()
         if connect != None :
             self.PORTNAME = connect.PORTNAME
             self.PORT = connect.PORT
             self.BAUD = connect.BAUD
             self.PROTOCOL = connect.PROTOCOL
             self.FAST = connect.FAST
-            self.CHECKVOLTS = connect.CHECKVOLTS
             self.TIMEOUT = connect.TIMEOUT
+            self.CHECKVOLTS = connect.CHECKVOLTS
             self.RECONNECTS = connect.RECONNECTS
-        else :
-            self.PORTNAME = None
-            self.PORT = None
-            self.BAUD = None
-            self.PROTOCOL = None
-            self.FAST = None
-            self.CHECKVOLTS = None
-            self.TIMEOUT = None
-            self.RECONNECTS = None
 
     def resetConnection(self):
         self.PORTNAME = Connection.strPortNameDefault
+        self.PORT = None
         self.BAUD = 115200
         self.PROTOCOL = "6"
         self.FAST = True
+        self.TIMEOUT = 10.0
         self.CHECKVOLTS = True
-        self.TIMEOUT = 10
         self.RECONNECTS = 3
         AppSettings.DEBUG_LEVEL = Connection.iDebugLevelDefault
+        OBD2Device.setLogging()

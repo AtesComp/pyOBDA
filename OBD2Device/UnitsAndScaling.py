@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 ########################################################################
 #                                                                      #
 # python-OBD: A python OBD-II serial module derived from pyobd         #

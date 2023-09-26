@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 ########################################################################
 #                                                                      #
 # python-OBD: A python OBD-II serial module derived from pyobd         #
@@ -11,7 +9,7 @@
 #                                                                      #
 ########################################################################
 #                                                                      #
-# Command.py                                                           #
+# Command.py   OBDCommand                                              #
 #                                                                      #
 # This file is part of python-OBD (a derivative of pyOBD)              #
 #                                                                      #
@@ -32,6 +30,7 @@
 
 from .utils import *
 from .protocols import ECU, ECU_HEADER
+from .protocols.protocol import Message
 
 from .Response import Response
 
@@ -85,7 +84,7 @@ class Command:
         else:
             return None
 
-    def __call__(self, messages):
+    def __call__(self, messages:list[Message]) -> Response:
         # Filter applicable messages from the right ECU(s)...
         messages = [m for m in messages if (self.ecu & m.ecu) > 0]
 
@@ -94,13 +93,13 @@ class Command:
             self.__constrain_message_data(m)
 
         # Create the response object with the raw data received and reference to original command
-        r = Response(self, messages)
+        response = Response(self, messages)
         if messages:
-            r.value = self.decode(messages)
+            response.value = self.decode(messages)
         else:
             logger.info(str(self) + " did not receive any acceptable messages")
 
-        return r
+        return response
 
     def __constrain_message_data(self, message):
         # Sizes the data field to the command's specified size...

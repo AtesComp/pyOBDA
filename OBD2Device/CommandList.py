@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 ########################################################################
 #                                                                      #
 # python-OBD: A python OBD-II serial module derived from pyobd         #
@@ -11,7 +9,7 @@
 #                                                                      #
 ########################################################################
 #                                                                      #
-# CommandList.py                                                       #
+# CommandList.py   commands                                            #
 #                                                                      #
 # This file is part of python-OBD (a derivative of pyOBD)              #
 #                                                                      #
@@ -124,39 +122,39 @@ class CommandList(object):
         Command("CATALYST_TEMP_B1S2"         , "Catalyst Temperature: Bank 1 - Sensor 2" , b"013E",     4, uas(0x16)            , ECU.ENGINE, True ),
         Command("CATALYST_TEMP_B2S2"         , "Catalyst Temperature: Bank 2 - Sensor 2" , b"013F",     4, uas(0x16)            , ECU.ENGINE, True ),
 
-        #        Name                           Description                                  CmdID  Bytes  Decoder                ECU         Fast
-        Command("PIDS_C"                     , "Supported PIDs [41-60]"                  , b"0140",     6, pid                  , ECU.ENGINE, True ),
-        Command("STATUS_DRIVE_CYCLE"         , "Monitor status this drive cycle"         , b"0141",     6, status               , ECU.ENGINE, True ),
-        Command("CONTROL_MODULE_VOLTAGE"     , "Control module voltage"                  , b"0142",     4, uas(0x0B)            , ECU.ENGINE, True ),
-        Command("ABSOLUTE_LOAD"              , "Absolute load value"                     , b"0143",     4, absolute_load        , ECU.ENGINE, True ),
-        Command("COMMANDED_EQUIV_RATIO"      , "Commanded equivalence ratio"             , b"0144",     4, uas(0x1E)            , ECU.ENGINE, True ),
-        Command("RELATIVE_THROTTLE_POS"      , "Relative throttle position"              , b"0145",     3, percent              , ECU.ENGINE, True ),
-        Command("AMBIANT_AIR_TEMP"           , "Ambient air temperature"                 , b"0146",     3, temp                 , ECU.ENGINE, True ),
-        Command("THROTTLE_POS_B"             , "Absolute throttle position B"            , b"0147",     3, percent              , ECU.ENGINE, True ),
-        Command("THROTTLE_POS_C"             , "Absolute throttle position C"            , b"0148",     3, percent              , ECU.ENGINE, True ),
-        Command("ACCELERATOR_POS_D"          , "Accelerator pedal position D"            , b"0149",     3, percent              , ECU.ENGINE, True ),
-        Command("ACCELERATOR_POS_E"          , "Accelerator pedal position E"            , b"014A",     3, percent              , ECU.ENGINE, True ),
-        Command("ACCELERATOR_POS_F"          , "Accelerator pedal position F"            , b"014B",     3, percent              , ECU.ENGINE, True ),
-        Command("THROTTLE_ACTUATOR"          , "Commanded throttle actuator"             , b"014C",     3, percent              , ECU.ENGINE, True ),
-        Command("RUN_TIME_MIL"               , "Time run with MIL on"                    , b"014D",     4, uas(0x34)            , ECU.ENGINE, True ),
-        Command("TIME_SINCE_DTC_CLEARED"     , "Time since trouble codes cleared"        , b"014E",     4, uas(0x34)            , ECU.ENGINE, True ),
-        Command("MAX_VALUES"                 , "Various Max values"                      , b"014F",     6, drop                 , ECU.ENGINE, True ), # TODO: decode this
-        Command("MAX_MAF"                    , "Maximum value for mass air flow sensor"  , b"0150",     6, max_maf              , ECU.ENGINE, True ),
-        Command("FUEL_TYPE"                  , "Fuel Type"                               , b"0151",     3, fuel_type            , ECU.ENGINE, True ),
-        Command("ETHANOL_PERCENT"            , "Ethanol Fuel Percent"                    , b"0152",     3, percent              , ECU.ENGINE, True ),
-        Command("EVAP_VAPOR_PRESSURE_ABS"    , "Absolute Evap system Vapor Pressure"     , b"0153",     4, abs_evap_pressure    , ECU.ENGINE, True ),
-        Command("EVAP_VAPOR_PRESSURE_ALT"    , "Evap system vapor pressure"              , b"0154",     4, evap_pressure_alt    , ECU.ENGINE, True ),
-        Command("SHORT_O2_TRIM_B1"           , "Short term secondary O2 trim - Bank 1"   , b"0155",     4, percent_centered     , ECU.ENGINE, True ), # TODO: decode seconds value for banks 3 and 4
-        Command("LONG_O2_TRIM_B1"            , "Long term secondary O2 trim - Bank 1"    , b"0156",     4, percent_centered     , ECU.ENGINE, True ),
-        Command("SHORT_O2_TRIM_B2"           , "Short term secondary O2 trim - Bank 2"   , b"0157",     4, percent_centered     , ECU.ENGINE, True ),
-        Command("LONG_O2_TRIM_B2"            , "Long term secondary O2 trim - Bank 2"    , b"0158",     4, percent_centered     , ECU.ENGINE, True ),
-        Command("FUEL_RAIL_PRESSURE_ABS"     , "Fuel rail pressure (absolute)"           , b"0159",     4, uas(0x1B)            , ECU.ENGINE, True ),
-        Command("RELATIVE_ACCEL_POS"         , "Relative accelerator pedal position"     , b"015A",     3, percent              , ECU.ENGINE, True ),
-        Command("HYBRID_BATTERY_REMAINING"   , "Hybrid battery pack remaining life"      , b"015B",     3, percent              , ECU.ENGINE, True ),
-        Command("OIL_TEMP"                   , "Engine oil temperature"                  , b"015C",     3, temp                 , ECU.ENGINE, True ),
-        Command("FUEL_INJECT_TIMING"         , "Fuel injection timing"                   , b"015D",     4, inject_timing        , ECU.ENGINE, True ),
-        Command("FUEL_RATE"                  , "Engine fuel rate"                        , b"015E",     4, fuel_rate            , ECU.ENGINE, True ),
-        Command("EMISSION_REQ"               , "Designed emission requirements"          , b"015F",     3, drop                 , ECU.ENGINE, True ),
+        #        Name                              Description                                              CmdID  Bytes  Decoder             ECU          Fast
+        Command("PIDS_C"                        , "Supported PIDs [41-60]"                              , b"0140",     6, pid               , ECU.ENGINE,  True ),
+        Command("STATUS_DRIVE_CYCLE"            , "Monitor status this drive cycle"                     , b"0141",     6, status            , ECU.ENGINE, True ),
+        Command("CONTROL_MODULE_VOLTAGE"        , "Control module voltage"                              , b"0142",     4, uas(0x0B)         , ECU.ENGINE, True ),
+        Command("ABSOLUTE_LOAD"                 , "Absolute load value"                                 , b"0143",     4, absolute_load     , ECU.ENGINE, True ),
+        Command("COMMANDED_EQUIV_RATIO"         , "Commanded equivalence ratio"                         , b"0144",     4, uas(0x1E)         , ECU.ENGINE, True ),
+        Command("RELATIVE_THROTTLE_POS"         , "Relative throttle position"                          , b"0145",     3, percent           , ECU.ENGINE, True ),
+        Command("AMBIANT_AIR_TEMP"              , "Ambient air temperature"                             , b"0146",     3, temp              , ECU.ENGINE, True ),
+        Command("THROTTLE_POS_B"                , "Absolute throttle position B"                        , b"0147",     3, percent           , ECU.ENGINE, True ),
+        Command("THROTTLE_POS_C"                , "Absolute throttle position C"                        , b"0148",     3, percent           , ECU.ENGINE, True ),
+        Command("ACCELERATOR_POS_D"             , "Accelerator pedal position D"                        , b"0149",     3, percent           , ECU.ENGINE, True ),
+        Command("ACCELERATOR_POS_E"             , "Accelerator pedal position E"                        , b"014A",     3, percent           , ECU.ENGINE, True ),
+        Command("ACCELERATOR_POS_F"             , "Accelerator pedal position F"                        , b"014B",     3, percent           , ECU.ENGINE, True ),
+        Command("THROTTLE_ACTUATOR"             , "Commanded throttle actuator"                         , b"014C",     3, percent           , ECU.ENGINE, True ),
+        Command("RUN_TIME_MIL"                  , "Time run with MIL on"                                , b"014D",     4, uas(0x34)         , ECU.ENGINE, True ),
+        Command("TIME_SINCE_DTC_CLEARED"        , "Time since trouble codes cleared"                    , b"014E",     4, uas(0x34)         , ECU.ENGINE, True ),
+        Command("MAX_VALUES"                    , "Various Max values"                                  , b"014F",     6, drop              , ECU.ENGINE, True ), # TODO: decode this
+        Command("MAX_MAF"                       , "Maximum value for mass air flow sensor"              , b"0150",     6, max_maf           , ECU.ENGINE, True ),
+        Command("FUEL_TYPE"                     , "Fuel Type"                                           , b"0151",     3, fuel_type         , ECU.ENGINE, True ),
+        Command("ETHANOL_PERCENT"               , "Ethanol Fuel Percent"                                , b"0152",     3, percent           , ECU.ENGINE, True ),
+        Command("EVAP_VAPOR_PRESSURE_ABS"       , "Absolute Evap system Vapor Pressure"                 , b"0153",     4, abs_evap_pressure , ECU.ENGINE, True ),
+        Command("EVAP_VAPOR_PRESSURE_ALT"       , "Evap system vapor pressure"                          , b"0154",     4, evap_pressure_alt , ECU.ENGINE, True ),
+        Command("SHORT_O2_TRIM_B1"              , "Short term secondary O2 trim - Bank 1"               , b"0155",     4, percent_centered  , ECU.ENGINE, True ), # TODO: decode seconds value for banks 3 and 4
+        Command("LONG_O2_TRIM_B1"               , "Long term secondary O2 trim - Bank 1"                , b"0156",     4, percent_centered  , ECU.ENGINE, True ),
+        Command("SHORT_O2_TRIM_B2"              , "Short term secondary O2 trim - Bank 2"               , b"0157",     4, percent_centered  , ECU.ENGINE, True ),
+        Command("LONG_O2_TRIM_B2"               , "Long term secondary O2 trim - Bank 2"                , b"0158",     4, percent_centered  , ECU.ENGINE, True ),
+        Command("FUEL_RAIL_PRESSURE_ABS"        , "Fuel rail pressure (absolute)"                       , b"0159",     4, uas(0x1B)         , ECU.ENGINE, True ),
+        Command("RELATIVE_ACCEL_POS"            , "Relative accelerator pedal position"                 , b"015A",     3, percent           , ECU.ENGINE, True ),
+        Command("HYBRID_BATTERY_REMAINING"      , "Hybrid battery pack remaining life"                  , b"015B",     3, percent           , ECU.ENGINE, True ),
+        Command("OIL_TEMP"                      , "Engine oil temperature"                              , b"015C",     3, temp              , ECU.ENGINE, True ),
+        Command("FUEL_INJECT_TIMING"            , "Fuel injection timing"                               , b"015D",     4, inject_timing     , ECU.ENGINE, True ),
+        Command("FUEL_RATE"                     , "Engine fuel rate"                                    , b"015E",     4, fuel_rate         , ECU.ENGINE, True ),
+        Command("EMISSION_REQ"                  , "Designed emission requirements"                      , b"015F",     3, drop              , ECU.ENGINE, True ),
     ]
 
     # Mode 2 is the same as Mode 1, but returns the Freeze Frame values for the Powertrain Diagnostic Data at the time the frame was set
@@ -392,39 +390,56 @@ class CommandList(object):
     # OVERRIDE class builtin __contains__ method...
     def __contains__(self, name):
         # Find the Command containing the Name...
-        return self.has_name(name)
+        return self.hasCmdName(name)
 
-    def base_commands(self):
+    def getBaseCmds(self):
         # List the standard ELM327 supported commands...
         return [
+            # 0100
             self.PIDS_A,
-            self.PIDS_9A,
-            self.MIDS_A,
+            self.PIDS_B,
+            self.PIDS_C,
+            #0200
+            #   Freeze Frame: Use the 0100 PIDS
+            # 03
             self.GET_DTC,
+            # 04
             self.CLEAR_DTC,
+            # 0600
+            self.MIDS_A,
+            self.MIDS_B,
+            self.MIDS_C,
+            self.MIDS_D,
+            self.MIDS_E,
+            self.MIDS_F,
+            # 07
             self.GET_CURRENT_DTC,
+            # 0900
+            self.PIDS_9A,
+            # MISC
             self.ELM_VERSION,
             self.ELM_VOLTAGE,
         ]
 
-    def pid_getters(self):
-        """ returns a list of PID GET commands """
-        getters = []
+    def getPIDCmds(self) -> list[Command]:
+        # Return a list of PID GET commands
+        cmdsPID:list[Command] = []
         for mode in self.modes:
-            getters += [cmd for cmd in mode if (cmd and cmd.decode == pid)]
-        return getters
+            cmdsPID += [cmd for cmd in mode if (cmd and cmd.decode == pid)]
+        return cmdsPID
 
-    def has_command(self, c):
-        """ checks for existance of a command by OBDCommand object """
+    def hasCmd(self, c):
+        # Check for existance of a command by OBDCommand object
         return c in self.__dict__.values()
 
-    def has_name(self, name):
-        """ checks for existance of a command by name """
+    def hasCmdName(self, name):
+        # Check for existance of a command by name
+
         # isupper() rejects all the normal properties
         return name.isupper() and name in self.__dict__
 
-    def has_pid(self, mode, pid):
-        """ checks for existance of a command by int mode and int pid """
+    def hasPID(self, mode, pid):
+        # Check for existance of a command by int mode and int pid
         if (mode < 0) or (pid < 0):
             return False
         if mode >= len(self.modes):
@@ -432,5 +447,5 @@ class CommandList(object):
         if pid >= len(self.modes[mode]):
             return False
 
-        # make sure that the command isn't reserved
+        # Check for reserved command...
         return self.modes[mode][pid] is not None

@@ -4,7 +4,7 @@
 #
 # Frame.py
 #
-# Copyright 2023 Keven L. Ates (atescomp@gmail.com)
+# Copyright 2021-2023 Keven L. Ates (atescomp@gmail.com)
 #
 # This file is part of the Onboard Diagnostics II Advanced (pyOBDA) system.
 #
@@ -19,8 +19,8 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with pyOBDA; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+# along with pyOBDA; if not, write to the Free Software Foundation, Inc.,
+# 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ############################################################################
 
 import wx
@@ -417,7 +417,7 @@ class Frame(wx.Frame):
         wx.PostEvent(self, EventDebug([2, "OnConnect..."]))
         self.SensorShutdown()
         self.ThreadControl = 0  # ...signal do nothing on port
-        self.SensorProd = SensorProducer(self)
+        self.SensorProd = SensorProducer(self) # ...create sensor producer with self as controls
         self.SensorProd.start()
         self.SensorControlOn()
 
@@ -478,8 +478,8 @@ class Frame(wx.Frame):
         diag.SetSizer(sizer)
         diag.SetAutoLayout(True)
         sizer.Fit(diag)
-        r = diag.ShowModal()
-        if r == wx.ID_OK:
+        result = diag.ShowModal()
+        if result == wx.ID_OK:
             self.ClearDTC()
 
     def ClearDTC(self) :
@@ -489,7 +489,7 @@ class Frame(wx.Frame):
 
     def OnConfigure(self, event=None) :
         wx.PostEvent(self, EventDebug([2, "OnConfigure..."]))
-        self.configDialog.checkPorts()
+        self.configDialog.setPorts()
         result = self.configDialog.ShowModal()
         self.configDialog.processSettings(self, result)
 

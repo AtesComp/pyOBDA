@@ -1,8 +1,8 @@
 ```
            API
 ┌───────────────────────────┐
-│   ODB2Connector.py /      │
-│   ODB2ConnectorAsync.py   │
+│   OBD2Connector.py /      │
+│   OBD2ConnectorAsync.py   │
 └───┰───────────────────────┘
     ┃               ▲
     ┃               ┃

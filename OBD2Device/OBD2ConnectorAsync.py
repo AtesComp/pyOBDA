@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 ########################################################################
 #                                                                      #
 # python-OBD: A python OBD-II serial module derived from pyobd         #
@@ -11,7 +9,7 @@
 #                                                                      #
 ########################################################################
 #                                                                      #
-# async.py                                                             #
+# OBD2ConnectorAsync.py   asynchronous                                 #
 #                                                                      #
 # This file is part of python-OBD (a derivative of pyOBD)              #
 #                                                                      #
@@ -41,61 +39,60 @@ logger = logging.getLogger(__name__)
 
 
 class OBD2ConnectorAsync(OBD2Connector):
-    """
-        Class representing an OBD-II connection with it's assorted commands/sensors
-        Specialized for asynchronous value reporting.
-    """
+    # Class representing an OBD-II connection with it's assorted commands and sensors
+    #
+    # Specialized for asynchronous value reporting.
 
-    def __init__(self, portstr=None, baudrate=None, protocol=None, fast=True,
-                 timeout=0.1, check_voltage=True, start_low_power=False,
-                 delay_cmds=0.25):
+    def __init__(self, strPort:str = "", iBaudRate:int = 0, strProtocol:str = "", bFast:bool = True,
+                 fTimeout:float = 0.1, bCheckVoltage:bool = True, bStartLowPower:bool = False,
+                 fDelayCmds:float = 0.25):
         self.__thread = None
-        super(OBD2ConnectorAsync, self).__init__(portstr, baudrate, protocol, fast,
-                                    timeout, check_voltage, start_low_power)
-        self.__commands = {}   # key = OBDCommand, value = Response
-        self.__callbacks = {}  # key = OBDCommand, value = list of Functions
-        self.__running = False
-        self.__was_running = False  # used with __enter__() and __exit__()
-        self.__delay_cmds = delay_cmds
+        super(OBD2ConnectorAsync, self).__init__(
+            strPort, iBaudRate, strProtocol, bFast, fTimeout, bCheckVoltage, bStartLowPower
+        )
+        self.__dictCommands = {}   # key = OBDCommand, value = Response
+        self.__dictCallbacks = {}  # key = OBDCommand, value = list of Functions
+        self.__bRunning = False
+        self.__bWasRunning = False  # used with __enter__() and __exit__()
+        self.__fDelayCmds = fDelayCmds
 
     @property
     def running(self):
-        return self.__running
+        return self.__bRunning
 
     def start(self):
-        """ Starts the async update loop """
-        if not self.is_connected():
+        # Start the async update loop...
+        if not self.isConnected():
             logger.info("Async thread not started because no connection was made")
             return
 
-        if len(self.__commands) == 0:
+        if len(self.__dictCommands) == 0:
             logger.info("Async thread not started because no commands were registered")
             return
 
         if self.__thread is None:
             logger.info("Starting async thread")
-            self.__running = True
+            self.__bRunning = True
             self.__thread = threading.Thread(target=self.run)
             self.__thread.daemon = True
             self.__thread.start()
 
     def stop(self):
-        """ Stops the async update loop """
+        # Stop the async update loop...
         if self.__thread is not None:
             logger.info("Stopping async thread...")
-            self.__running = False
+            self.__bRunning = False
             self.__thread.join()
             self.__thread = None
             logger.info("Async thread stopped")
 
     def paused(self):
-        """
-            A stub function for semantic purposes only
-            enables code such as:
+        # A stub function for semantic purposes only
+        #
+        # Enables code such as:
+        #   with connection.paused() as was_running
+        #   ...
 
-            with connection.paused() as was_running
-                ...
-        """
         return self
 
     def __enter__(self):
@@ -103,125 +100,119 @@ class OBD2ConnectorAsync(OBD2Connector):
             pauses the async loop,
             while recording the old state
         """
-        self.__was_running = self.__running
+        self.__bWasRunning = self.__bRunning
         self.stop()
-        return self.__was_running
+        return self.__bWasRunning
 
     def __exit__(self, exc_type, exc_value, traceback):
-        """
-            resumes the update loop if it was running
-            when __enter__ was called
-        """
-        if not self.__running and self.__was_running:
+        # Resume the update loop if it was running when __enter__ was called
+
+        if not self.__bRunning and self.__bWasRunning:
             self.start()
 
-        return False  # don't suppress any exceptions
+        return False  # ...don't suppress exceptions
 
     def close(self):
-        """ Closes the connection """
+        # Close the connection...
         self.stop()
         super(OBD2ConnectorAsync, self).close()
 
     def watch(self, c, callback=None, force=False):
-        """
-            Subscribes the given command for continuous updating. Once subscribed,
-            query() will return that command's latest value. Optional callbacks can
-            be given, which will be fired upon every new value.
-        """
+        # Subscribe the given command for continuous updating
+        #
+        # Once subscribed, query() will return that command's latest value.
+        # Optional callbacks can be given which will be fired upon every new value.
 
-        # the dict shouldn't be changed while the daemon thread is iterating
-        if self.__running:
+        # Don't change the dict while the daemon thread is iterating...
+        if self.__bRunning:
             logger.warning("Can't watch() while running, please use stop()")
+        # Otherwise...
         else:
-
-            if not force and not self.test_cmd(c):
+            if not force and not self.isCmdUsable(c):
                 # self.test_cmd() will print warnings
                 return
 
-            # new command being watched, store the command
-            if c not in self.__commands:
+            # Create new command being watched, store the command...
+            if c not in self.__dictCommands:
                 logger.info("Watching command: %s" % str(c))
-                self.__commands[c] = Response()  # give it an initial value
-                self.__callbacks[c] = []  # create an empty list
+                self.__dictCommands[c] = Response()  # ...give it an initial value
+                self.__dictCallbacks[c] = []  # ...create an empty list
 
-            # if a callback was given, push it
-            if hasattr(callback, "__call__") and (callback not in self.__callbacks[c]):
+            # If a callback was given, push it...
+            if hasattr(callback, "__call__") and (callback not in self.__dictCallbacks[c]):
                 logger.info("subscribing callback for command: %s" % str(c))
-                self.__callbacks[c].append(callback)
+                self.__dictCallbacks[c].append(callback)
 
     def unwatch(self, c, callback=None):
-        """
-            Unsubscribes a specific command (and optionally, a specific callback)
-            from being updated. If no callback is specified, all callbacks for
-            that command are dropped.
-        """
+        # Unsubscribes a specific command (and optionally, a specific callback) from being updated
+        #
+        # If no callback is specified, all callbacks for that command are dropped.
 
-        # the dict shouldn't be changed while the daemon thread is iterating
-        if self.__running:
+        # Don't change the dict while the daemon thread is iterating...
+        if self.__bRunning:
             logger.warning("Can't unwatch() while running, please use stop()")
         else:
             logger.info("Unwatching command: %s" % str(c))
 
-            if c in self.__commands:
+            if c in self.__dictCommands:
                 # if a callback was specified, only remove the callback
-                if hasattr(callback, "__call__") and (callback in self.__callbacks[c]):
-                    self.__callbacks[c].remove(callback)
+                if hasattr(callback, "__call__") and (callback in self.__dictCallbacks[c]):
+                    self.__dictCallbacks[c].remove(callback)
 
                     # if no more callbacks are left, remove the command entirely
-                    if len(self.__callbacks[c]) == 0:
-                        self.__commands.pop(c, None)
+                    if len(self.__dictCallbacks[c]) == 0:
+                        self.__dictCommands.pop(c, None)
                 else:
                     # no callback was specified, pop everything
-                    self.__callbacks.pop(c, None)
-                    self.__commands.pop(c, None)
+                    self.__dictCallbacks.pop(c, None)
+                    self.__dictCommands.pop(c, None)
 
     def unwatch_all(self):
-        """ Unsubscribes all commands and callbacks from being updated """
+        # Unsubscribes all commands and callbacks from being updated
 
-        # the dict shouldn't be changed while the daemon thread is iterating
-        if self.__running:
+        # Don't change the dict while the daemon thread is iterating...
+        if self.__bRunning:
             logger.warning("Can't unwatch_all() while running, please use stop()")
         else:
             logger.info("Unwatching all")
-            self.__commands = {}
-            self.__callbacks = {}
+            self.__dictCommands = {}
+            self.__dictCallbacks = {}
 
     def query(self, c, force=False):
-        """
-            Non-blocking query().
-            Only commands that have been watch()ed will return valid responses
-        """
+        # Non-blocking query()
+        #
+        # Only commands that have been watch()ed will return valid responses
 
-        if c in self.__commands:
-            return self.__commands[c]
+        if c in self.__dictCommands:
+            return self.__dictCommands[c]
         else:
             return Response()
 
     def run(self):
-        """ Daemon thread """
+        # Daemon Thread
 
-        # loop until the stop signal is received
-        while self.__running:
+        # Loop until the stop signal is received...
+        while self.__bRunning:
 
-            if len(self.__commands) > 0:
-                # loop over the requested commands, send, and collect the response
-                for c in self.__commands:
-                    if not self.is_connected():
+            if len(self.__dictCommands) > 0:
+                # Loop over the requested commands: send and collect the response...
+                for c in self.__dictCommands:
+                    if not self.isConnected():
                         logger.info("Async thread terminated because device disconnected")
-                        self.__running = False
+                        self.__bRunning = False
                         self.__thread = None
                         return
 
-                    # force, since commands are checked for support in watch()
-                    r = super(OBD2ConnectorAsync, self).query(c, force=True)
+                    # Force, since commands are checked for support in watch()...
+                    r = super(OBD2ConnectorAsync, self).query(c, bForce=True)
 
-                    # store the response
-                    self.__commands[c] = r
+                    # Store the response...
+                    self.__dictCommands[c] = r
 
-                    # fire the callbacks, if there are any
-                    for callback in self.__callbacks[c]:
+                    # Fire the callbacks, if there are any...
+                    for callback in self.__dictCallbacks[c]:
                         callback(r)
-                time.sleep(self.__delay_cmds)
+                time.sleep(self.__fDelayCmds)
 
             else:
-                time.sleep(0.25)  # idle
+                time.sleep(0.25)  # ...idle

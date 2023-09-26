@@ -4,7 +4,7 @@
 #
 # AppSettings.py
 #
-# Copyright 2023 Keven L. Ates (atescomp@gmail.com)
+# Copyright 2021-2023 Keven L. Ates (atescomp@gmail.com)
 #
 # This file is part of the Onboard Diagnostics II Advanced (pyOBDA) system.
 #
@@ -19,8 +19,8 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with pyOBDA; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+# along with pyOBDA; if not, write to the Free Software Foundation, Inc.,
+# 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ############################################################################
 
 ID_ABOUT  = 101
@@ -43,11 +43,17 @@ CHAR_BALLOTX = u'\u2717'
 CHAR_CROSSX  = u'\u274C'
 CHAR_QMARK   = u'\u003F'
 
-DEBUG_LEVEL = 5  # ...debug everthing until told otherwise
+# Debug Setting for wx Trace Page
+#   Debug events are sent to the Trace Page for display.
+#   The DEBUG_LEVEL controls what Debug Events will be sent to the Trace Page:
+#   0 = No Debug Events (least verbose)
+#       to
+#   5 = All Debug Events (most verbose)
+DEBUG_LEVEL = 5  # ...default - debug everthing, changed by config
 
 STR_HELP_TEXT = \
     "Onboard Diagnostics II Advanced: pyOBDA\n" + \
-    "  (C) 2023 Keven L. Ates (atescomp@gmail.com)\n" + \
+    "  (C) 2021-2023 Keven L. Ates (atescomp@gmail.com)\n" + \
     "\n" + \
     "To setup a configuration for pyOBDA:\n" + \
     "  Linux: create a config file in your HOME directory at .config/pyobda/\n" + \
@@ -74,8 +80,8 @@ STR_HELP_TEXT = \
     "  PyOBD:\n" + \
     "    (C) 2008-2009 SeCons Ltd. (www.obdtester.com)\n" + \
     "    (C) 2004 Charles Donour Sizemore (donour@uchicago.edu)\n" + \
-    "    (C) 2021 Jure Poljsak (https://github.com/barracuda-fsh/pyobd)" + \
-    "  python-obd\n" + \
+    "    (C) 2021 Jure Poljsak (https://github.com/barracuda-fsh/pyobd)\n" + \
+    "  python-obd:\n" + \
     "    (C) 2004 Donour Sizemore (donour@uchicago.edu)\n" + \
     "    (C) 2009 Secons Ltd. (www.obdtester.com)\n" + \
     "    (C) 2009 Peter J. Creath\n" + \

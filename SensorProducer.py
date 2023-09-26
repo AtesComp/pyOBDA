@@ -4,7 +4,7 @@
 #
 # SensorProducer.py
 #
-# Copyright 2023 Keven L. Ates (atescomp@gmail.com)
+# Copyright 2021-2023 Keven L. Ates (atescomp@gmail.com)
 #
 # This file is part of the Onboard Diagnostics II Advanced (pyOBDA) system.
 #
@@ -19,8 +19,8 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with pyOBDA; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+# along with pyOBDA; if not, write to the Free Software Foundation, Inc.,
+# 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ############################################################################
 
 import wx
@@ -38,10 +38,10 @@ from OBD2Device.Codes import Codes
 
 # A Sensor Producer class to produce sensor managers...
 class SensorProducer(threading.Thread):
-    def __init__(self, controls):
+    def __init__(self, controls): # controls is a Frame object
         super().__init__()
         self.controls = controls
-        self.connection = Connection(controls.configDialog.configSettings)
+        self.connection = Connection(controls.configDialog.connection)
         self.notebook = controls.notebook
         self.supported = [0] * 3
         self.active = [[]] * 3
@@ -49,26 +49,6 @@ class SensorProducer(threading.Thread):
     def run(self):
         self.StartProduction()
         self.StopProduction()
-
-    def InitCommunication(self):
-        self.connection.PORT = OBD2Port(self.controls, self.connection)
-        if self.connection.PORT.Connected == False:  # ...cannot connect to vehicle
-            return
-
-        wx.PostEvent( self.controls, EventDebug( [1, "Communication initialized..."] ) )
-
-        for iSensorGroup in range(3) :
-            self.supported[iSensorGroup] = self.connection.PORT.getSensorInfo(iSensorGroup, 0)[1].value  # ...Supported PIDs
-            self.active[iSensorGroup] = []
-
-            for iIndex, bSupport in enumerate(self.supported[iSensorGroup]) :
-                self.active[iSensorGroup].append(bSupport)
-                if bSupport :
-                    wx.PostEvent( self.controls, EventResult([iIndex, 0, AppSettings.CHAR_CHECK] ) )
-                else:
-                    wx.PostEvent( self.controls, EventResult([iIndex, 0, AppSettings.CHAR_BALLOTX] ) )
-
-        wx.PostEvent( self.controls, EventDebug( [3, "  Sensors marked for support..."] ) )
 
     def StartProduction(self):
         wx.PostEvent( self.controls, EventDebug( [2, "Starting Sensor Connection..."] ) )
@@ -155,6 +135,33 @@ class SensorProducer(threading.Thread):
 
             if self.controls.ThreadControl == -1:  # ...end thread
                 break
+
+    def InitCommunication(self):
+        self.connection.PORT = OBD2Port(self.controls, self.connection)
+        if self.connection.PORT.Connected == False:  # ...cannot connect to vehicle
+            return
+
+        wx.PostEvent( self.controls, EventDebug( [1, "Communication initialized..."] ) )
+
+        # Populate sensor pages with initial data...
+        for iSensorGroup in range(3) :
+            response = self.connection.PORT.getSensorInfo(iSensorGroup, 0)[1]
+            if ( response.isNull() ) :
+                # NOTE: Event message already from getSensorInfo()
+                self.supported[iSensorGroup] = ""
+            else:
+                self.supported[iSensorGroup] = response.value  # ...Supported PIDs
+            self.active[iSensorGroup] = []
+
+            for iIndex, bSupport in enumerate(self.supported[iSensorGroup]) :
+                self.active[iSensorGroup].append(bSupport)
+
+                if bSupport :
+                    wx.PostEvent( self.controls, EventResult([iSensorGroup, iIndex, 0, AppSettings.CHAR_CHECK] ) )
+                else:
+                    wx.PostEvent( self.controls, EventResult([iSensorGroup, iIndex, 0, AppSettings.CHAR_BALLOTX] ) )
+
+        wx.PostEvent( self.controls, EventDebug( [3, "  Sensors marked for support..."] ) )
 
     def StopProduction(self):
         wx.PostEvent( self.controls, EventDebug( [2, "Stopping Sensor Connection..."] ) )

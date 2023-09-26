@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 ########################################################################
 #                                                                      #
 # python-OBD: A python OBD-II serial module derived from pyobd         #
@@ -135,15 +133,12 @@ class Protocol(object):
     TX_ID_TRANSMISSION = None
 
     def __init__(self, lines_0100):
-        """
-            constructs a protocol object
+        # Construct a protocol object
+        #
+        # Uses a list of raw strings from the vehicle to determine the ECU layout.
 
-            uses a list of raw strings from the
-            car to determine the ECU layout.
-        """
-
-        # create the default, empty map
-        # for example: self.TX_ID_ENGINE : ECU.ENGINE
+        # Create the default, empty map...
+        #   Example: self.TX_ID_ENGINE : ECU.ENGINE
         self.ecu_map = {}
 
         if (self.TX_ID_ENGINE is not None):
@@ -152,59 +147,57 @@ class Protocol(object):
         if (self.TX_ID_TRANSMISSION is not None):
             self.ecu_map[self.TX_ID_TRANSMISSION] = ECU.TRANSMISSION
 
-        # parse the 0100 data into messages
-        # NOTE: at this point, their "ecu" property will be UNKNOWN
-        messages = self(lines_0100)
+        # Parse the "0100" data into messages...
+        # NOTE: At this point, the "ecu" property will be UNKNOWN
+        messages = self(lines_0100) # ...__call__(lines_0100)
 
-        # read the messages and assemble the map
-        # subsequent runs will now be tagged correctly
+        # Read the messages and assemble the map...
+        # NOTE: Subsequent runs will be tagged correctly
         self.populate_ecu_map(messages)
 
-        # log out the ecu map
+        # Log the ecu map...
         for tx_id, ecu in self.ecu_map.items():
             names = [k for k, v in ECU.__dict__.items() if v == ecu]
             names = ", ".join(names)
             logger.debug("map ECU %d --> %s" % (tx_id, names))
 
-    def __call__(self, lines):
-        """
-            Main function
+    def __call__(self, lines) -> list[Message]:
+        # Main function
+        #
+        # Accept a list of raw strings from the vehicle, split by lines
 
-            accepts a list of raw strings from the car, split by lines
-        """
-
-        # ---------------------------- preprocess ----------------------------
-
-        # Non-hex (non-OBD) lines shouldn't go through the big parsers,
-        # since they are typically messages such as: "NO DATA", "CAN ERROR",
-        # "UNABLE TO CONNECT", etc, so sort them into these two lists:
+        #
+        # Preprocess
+        #
+        # NOTE: Non-hex (non-OBD) lines shouldn't go through the big parsers since they are
+        #       typically messages such as: "NO DATA", "CAN ERROR", "UNABLE TO CONNECT", etc.,
+        #       so sort them into two lists.
         obd_lines = []
         non_obd_lines = []
 
         for line in lines:
-
             line_no_spaces = line.replace(' ', '')
-
             if isHex(line_no_spaces):
                 obd_lines.append(line_no_spaces)
             else:
                 non_obd_lines.append(line)  # pass the original, un-scrubbed line
 
-        # ---------------------- handle valid OBD lines ----------------------
+        #
+        # Handle Valid OBD Lines
+        #
 
-        # parse each frame (each line)
+        # Parse each frame (each line)...
         frames = []
         for line in obd_lines:
 
             frame = Frame(line)
 
-            # subclass function to parse the lines into Frames
-            # drop frames that couldn't be parsed
+            # Subclass function to parse the lines into Frames...
+            # NOTE: Drop frames that couldn't be parsed.
             if self.parse_frame(frame):
                 frames.append(frame)
 
-        # group frames by transmitting ECU
-        # frames_by_ECU[tx_id] = [Frame, Frame]
+        # Group frames by transmitting ECU...
         frames_by_ECU = {}
         for frame in frames:
             if frame.tx_id not in frames_by_ECU:
@@ -212,55 +205,57 @@ class Protocol(object):
             else:
                 frames_by_ECU[frame.tx_id].append(frame)
 
-        # parse frames into whole messages
-        messages = []
+        # Parse frames into whole messages...
+        messages:list[Message] = []
         for ecu in sorted(frames_by_ECU.keys()):
 
-            # new message object with a copy of the raw data
-            # and frames addressed for this ecu
+            # Create new message object with a copy of the raw data and frames
+            #   addressed for this ecu...
             message = Message(frames_by_ECU[ecu])
 
-            # subclass function to assemble frames into Messages
+            # Subclass function to assemble frames into Messages...
             if self.parse_message(message):
-                # mark with the appropriate ECU ID
+                # Mark the appropriate ECU ID...
                 message.ecu = self.ecu_map.get(ecu, ECU.UNKNOWN)
                 messages.append(message)
 
-        # ----------- handle invalid lines (probably from the ELM) -----------
+        #
+        # Handle Invalid Lines (probably from the ELM)
+        #
 
         for line in non_obd_lines:
-            # give each line its own message object
-            # messages are ECU.UNKNOWN by default
-            messages.append(Message([Frame(line)]))
+            # Give each line its own message object...
+            # NOTE: Messages are ECU.UNKNOWN by default.
+            messages.append( Message( [ Frame(line) ] ) )
 
         return messages
 
     def populate_ecu_map(self, messages):
-        """
-            Given a list of messages from different ECUS,
-            (in response to the 0100 PID listing command)
-            associate each tx_id to an ECU ID constant.
+        # Given a list of messages from different ECUS (in response to the 0100 PID listing command),
+        # associate each tx_id to an ECU ID constant
+        #
+        # This is mostly concerned with finding the engine.
 
-            This is mostly concerned with finding the engine.
-        """
-
-        # filter out messages that don't contain any data
-        # this will prevent ELM responses from being mapped to ECUs
+        # Filter out messages that don't contain any data...
+        # NOTE: This will prevent ELM responses from being mapped to ECUs
         messages = [m for m in messages if m.parsed()]
 
-        # populate the map
+        #
+        # Populate the map...
+        #
+        # If no response...
         if len(messages) == 0:
             pass
+        # If one response, mark it as the engine regardless...
         elif len(messages) == 1:
-            # if there's only one response, mark it as the engine regardless
             self.ecu_map[messages[0].tx_id] = ECU.ENGINE
+        # Otherwise...
         else:
-
-            # the engine is important
-            # if we can't find it, we'll use a fallback
+            # The engine is important!
+            # If not found, use a fallback...
             found_engine = False
 
-            # if any tx_ids are exact matches to the expected values, record them
+            # I any tx_ids are exact matches to the expected values, record them...
             for m in messages:
                 if m.tx_id is None:
                     logger.debug("parse_frame failed to extract TX_ID")
@@ -274,8 +269,8 @@ class Protocol(object):
                 # TODO: program more of these when we figure out their constants
 
             if not found_engine:
-                # last resort solution, choose ECU with the most bits set
-                # (most PIDs supported) to be the engine
+                # Last Resort Solution: Choose ECU with the most bits set (most PIDs supported)
+                #   to be the engine...
                 best = 0
                 tx_id = None
 
@@ -288,31 +283,27 @@ class Protocol(object):
 
                 self.ecu_map[tx_id] = ECU.ENGINE
 
-            # any remaining tx_ids are unknown
+            # Any remaining tx_ids are unknown...
             for m in messages:
                 if m.tx_id not in self.ecu_map:
                     self.ecu_map[m.tx_id] = ECU.UNKNOWN
 
     def parse_frame(self, frame):
-        """
-            override in subclass for each protocol
+        # Override in subclass for each protocol
+        #
+        # Recieve a Frame object preloaded with the raw string line from the vehicle.
+        #
+        # Return a boolean. If fatal errors were found, this function should return False
+        # and the Frame will be dropped.
 
-            Function recieves a Frame object preloaded
-            with the raw string line from the car.
-
-            Function should return a boolean. If fatal errors were
-            found, this function should return False, and the Frame will be dropped.
-        """
         raise NotImplementedError()
 
     def parse_message(self, message):
-        """
-            override in subclass for each protocol
+        # Override in subclass for each protocol
+        #
+        # Recieve a Message object preloaded with a list of Frame objects.
+        #
+        # Return a boolean. If fatal errors were found, this function should return False
+        # and the Message will be dropped.
 
-            Function recieves a Message object
-            preloaded with a list of Frame objects.
-
-            Function should return a boolean. If fatal errors were
-            found, this function should return False, and the Message will be dropped.
-        """
         raise NotImplementedError()

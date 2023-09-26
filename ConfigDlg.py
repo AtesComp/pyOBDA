@@ -4,7 +4,7 @@
 #
 # Config.py
 #
-# Copyright 2023 Keven L. Ates (atescomp@gmail.com)
+# Copyright 2021-2023 Keven L. Ates (atescomp@gmail.com)
 #
 # This file is part of the Onboard Diagnostics II Advanced (pyOBDA) system.
 #
@@ -19,8 +19,8 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with pyOBDA; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+# along with pyOBDA; if not, write to the Free Software Foundation, Inc.,
+# 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ############################################################################
 
 import wx
@@ -31,16 +31,37 @@ import configparser  # ...safe application configuration
 from os import path, mkdir
 
 import AppSettings
+import OBD2Device
 from Connection import Connection
 from EventDebug import EventDebug
 from OBD2Port import OBD2Port
 
 
 class ConfigDlg(wx.Dialog):
-    def __init__(self, parent):
+    def __init__(self, parent): # ...parent is a Frame object
         wx.Dialog.__init__(
             self, parent, wx.ID_ANY, title="Configure",
             size=(400, 200), style=wx.DIALOG_ADAPTATION_STANDARD_SIZER )
+
+        # Common Positions and Sizes...
+        self.sizeStaticText = ( 95, 40)
+        self.sizeChoiceText = (305, 40)
+        self.sizeCheckText  = (300, 40)
+        self.posTextCtrl    = (100, -10)
+        self.sizeTextCtrl   = ( 50, 40)
+        self.sizeButton     = ( 80, 30)
+
+        # Common UI elements...
+        self.panelPorts      = None
+        self.choicePorts     = None
+        self.panelBauds      = None
+        self.panelProtocols  = None
+        self.checkFast       = None
+        self.checkVolts      = None
+        self.panelTimeout    = None
+        self.panelReconnect  = None
+        self.panelDebugLevel = None
+        self.boxButtons      = None
 
         self.SetBackgroundColour('BLACK')
         self.SetForegroundColour('WHITE')
@@ -49,23 +70,24 @@ class ConfigDlg(wx.Dialog):
     def initialize(self):
         # Set up to read settings from file...
         self.config = configparser.RawConfigParser()
-        self.configSettings = Connection(None)
+        self.connection = Connection(None)
 
         #print( platform.system() )
         #print( platform.mac_ver()[] )
 
-        self.stateTitle = [
-            "Link: ",
-            "Proto: ",
-            "Cable: ",
-            "Volts: ", # Cable Volts
-            "Port: ",
-            "Baud: ",
-            "Fast: ",
-            "Check: ", # Check Voltage
-            "Timeout: ",
-            "Times: ",
-            "Debug: " ]
+        self.stateTitle = \
+            [   "Link: ",
+                "Proto: ",
+                "Cable: ",
+                "Volts: ", # Cable Volts
+                "Port: ",
+                "Baud: ",
+                "Fast: ",
+                "Check: ", # Check Voltage
+                "Timeout: ",
+                "Times: ",
+                "Debug: ",
+            ]
 
         self.bIsLinux = False
         if sys.platform.startswith('win'):  # ...Windows
@@ -79,45 +101,34 @@ class ConfigDlg(wx.Dialog):
         if not bConfigExists :
             wx.PostEvent(self, EventDebug([1, "No configuration file exists: " + self.fileConfig]))
         if not bConfigExists or self.config.read(self.fileConfig) == [] :
-            self.configSettings.resetConnection()
+            self.connection.resetConnection()
         else :
             if not self.config.has_section("OBD") :
                 self.config.add_section("OBD")
             if not self.config.has_section("DEBUG") :
                 self.config.add_section("DEBUG")
-            self.configSettings.PORTNAME = self.config.get("OBD", "PORT", fallback="/dev/ttyUSB0")
+            self.connection.PORTNAME = self.config.get("OBD", "PORT", fallback="/dev/ttyUSB0")
             strBaud = self.config.get("OBD", "BAUD", fallback="")
             if (strBaud == "Auto") :
-                self.configSettings.BAUD = 0
+                self.connection.BAUD = 0
             else :
-                self.configSettings.BAUD = self.config.getint("OBD", "BAUD", fallback=115200)
-            self.configSettings.PROTOCOL = self.config.get("OBD", "PROTOCOL", fallback="6")
-            self.configSettings.FAST = self.config.getboolean("OBD", "FAST", fallback=True)
-            self.configSettings.CHECKVOLTS = self.config.getboolean("OBD", "CHECKVOLTS", fallback=True)
-            self.configSettings.TIMEOUT = self.config.getint("OBD", "TIMEOUT", fallback=10)
-            self.configSettings.RECONNECTS = self.config.getint("OBD", "RECONNECTS", fallback=3)
-            AppSettings.DEBUG_LEVEL = self.config.getint("DEBUG", "LEVEL", fallback=1)
-
-
-        # Common Positions and Sizes...
-        sizeStaticText = ( 95, 40)
-        sizeChoiceText = (305, 40)
-        sizeCheckText  = (300, 40)
-        posTextCtrl    = (100, -10)
-        sizeTextCtrl   = ( 50, 40)
-        sizeButton     = ( 80, 30)
+                self.connection.BAUD = self.config.getint("OBD", "BAUD", fallback=115200)
+            self.connection.PROTOCOL = self.config.get("OBD", "PROTOCOL", fallback="6")
+            self.connection.FAST = self.config.getboolean("OBD", "FAST", fallback=True)
+            self.connection.CHECKVOLTS = self.config.getboolean("OBD", "CHECKVOLTS", fallback=True)
+            self.connection.TIMEOUT = self.config.getint("OBD", "TIMEOUT", fallback=10)
+            self.connection.RECONNECTS = self.config.getint("OBD", "RECONNECTS", fallback=3)
+            AppSettings.DEBUG_LEVEL = self.config.getint("DEBUG", "LEVEL", fallback=5)
+            OBD2Device.setLogging()
 
         # Serial Ports Input RadioBox...
-        self.checkPorts()
-        panelPorts = wx.Panel(self)
-        staticPorts = wx.StaticText(
-            panelPorts, wx.ID_ANY, 'Serial Port:', size = sizeStaticText, style = wx.ALIGN_RIGHT | wx.ALIGN_CENTER_VERTICAL)
-        self.choicePorts = wx.Choice(panelPorts, wx.ID_ANY, posTextCtrl, sizeChoiceText, self.ports)
-        # Set the default serial port choice...
-        iIndex = 0
-        if (self.configSettings.PORTNAME != None) and (self.configSettings.PORTNAME in self.ports):
-            iIndex = self.ports.index(self.configSettings.PORTNAME)
-        self.choicePorts.SetSelection(iIndex)
+        self.panelPorts = wx.Panel(self)
+        staticPorts = \
+            wx.StaticText(
+                self.panelPorts, wx.ID_ANY, 'Serial Port:',
+                size=self.sizeStaticText, style=wx.ALIGN_RIGHT | wx.ALIGN_CENTER_VERTICAL
+            )
+        self.setPorts()
 
         # Serial Baud Input Panel & Control...
         # 9600, 19200, 38400, 57600, 115200
@@ -128,15 +139,16 @@ class ConfigDlg(wx.Dialog):
                 "38400",
                 "57600",
                 "115200",
+                "230400",
             ]
-        panelBauds = wx.Panel(self)
+        self.panelBauds = wx.Panel(self)
         staticBauds = wx.StaticText(
-            panelBauds, wx.ID_ANY, 'Baud Rate:', size=sizeStaticText, style=wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)
-        self.choiceBauds = wx.Choice(panelBauds, wx.ID_ANY, posTextCtrl, sizeChoiceText, self.bauds)
+            self.panelBauds, wx.ID_ANY, 'Baud Rate:', size=self.sizeStaticText, style=wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)
+        self.choiceBauds = wx.Choice(self.panelBauds, wx.ID_ANY, self.posTextCtrl, self.sizeChoiceText, self.bauds)
         # Set the default connection protocol choice...
-        iIndex = 0
-        strBaud = str(self.configSettings.BAUD)
-        if (self.configSettings.BAUD != None) and (strBaud in self.bauds) :
+        iIndex = 0 # ...default to "Auto Select"
+        strBaud = str(self.connection.BAUD)
+        if (self.connection.BAUD != None) and (strBaud in self.bauds) :
             iIndex = self.bauds.index(strBaud)
         self.choiceBauds.SetSelection(iIndex)
 
@@ -166,67 +178,81 @@ class ConfigDlg(wx.Dialog):
                 "A: SAE J1939 (CAN 29/250)"
             ]
         self.protocolShort = ["Auto", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A"]
-        panelProtocols = wx.Panel(self)
+        self.panelProtocols = wx.Panel(self)
         staticProtocols = wx.StaticText(
-            panelProtocols, wx.ID_ANY, 'Protocol:', size=sizeStaticText, style=wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)
-        self.choiceProtocols = wx.Choice(panelProtocols, wx.ID_ANY, posTextCtrl, sizeChoiceText, protocols)
+            self.panelProtocols, wx.ID_ANY, 'Protocol:', size=self.sizeStaticText, style=wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)
+        self.choiceProtocols = wx.Choice(self.panelProtocols, wx.ID_ANY, self.posTextCtrl, self.sizeChoiceText, protocols)
         # Set the default connection protocol choice...
         iIndex = 0
-        if (self.configSettings.PROTOCOL != None) and (self.configSettings.PROTOCOL in self.protocolShort) :
-            iIndex = self.protocolShort.index(self.configSettings.PROTOCOL)
+        if (self.connection.PROTOCOL != None) and (self.connection.PROTOCOL in self.protocolShort) :
+            iIndex = self.protocolShort.index(self.connection.PROTOCOL)
         self.choiceProtocols.SetSelection(iIndex)
 
         self.checkFast = \
             wx.CheckBox(
-                self, wx.ID_ANY, "Fast Connect?", size=sizeCheckText, style=wx.CHK_2STATE)
-        if (self.configSettings.FAST == True) :
-            self.checkFast.SetValue(self.configSettings.FAST)
+                self, wx.ID_ANY, "Fast Connect?", size=self.sizeCheckText, style=wx.CHK_2STATE)
+        if (self.connection.FAST == True) :
+            self.checkFast.SetValue(self.connection.FAST)
 
         self.checkVolts = \
             wx.CheckBox(
-                self, wx.ID_ANY, "Check Voltage?", size=sizeCheckText, style=wx.CHK_2STATE)
-        if (self.configSettings.CHECKVOLTS == True) :
-            self.checkVolts.SetValue(self.configSettings.CHECKVOLTS)
+                self, wx.ID_ANY, "Check Voltage?", size=self.sizeCheckText, style=wx.CHK_2STATE)
+        if (self.connection.CHECKVOLTS == True) :
+            self.checkVolts.SetValue(self.connection.CHECKVOLTS)
 
         # Timeout Input Panel & Control...
-        panelTimeout = wx.Panel(self)
+        self.panelTimeout = wx.Panel(self)
         staticTimeout = wx.StaticText(
-            panelTimeout, wx.ID_ANY, 'Timeout:', size=sizeStaticText, style=wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)
+            self.panelTimeout, wx.ID_ANY, 'Timeout:', size=self.sizeStaticText, style=wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)
         self.ctrlTimeout = wx.TextCtrl(
-            panelTimeout, wx.ID_ANY, str(self.configSettings.TIMEOUT), posTextCtrl, sizeTextCtrl)
+            self.panelTimeout, wx.ID_ANY, str(self.connection.TIMEOUT), self.posTextCtrl, self.sizeTextCtrl)
 
         # Reconnects Input Panel & Control...
-        panelReconnect = wx.Panel(self)
+        self.panelReconnect = wx.Panel(self)
         staticReconnect = wx.StaticText(
-            panelReconnect, wx.ID_ANY, 'Reconnects:', size=sizeStaticText, style=wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)
+            self.panelReconnect, wx.ID_ANY, 'Reconnects:', size=self.sizeStaticText, style=wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)
         self.ctrlReconnect = wx.TextCtrl(
-            panelReconnect, wx.ID_ANY, str(self.configSettings.RECONNECTS), posTextCtrl, sizeTextCtrl)
+            self.panelReconnect, wx.ID_ANY, str(self.connection.RECONNECTS), self.posTextCtrl, self.sizeTextCtrl)
 
         # Debug Level Input Panel & Control...
-        panelDebugLevel = wx.Panel(self)
+        self.panelDebugLevel = wx.Panel(self)
         staticDebugLevel = wx.StaticText(
-            panelDebugLevel, wx.ID_ANY, 'Debug:', size=sizeStaticText, style=wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)
+            self.panelDebugLevel, wx.ID_ANY, 'Debug:', size=self.sizeStaticText, style=wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)
         self.ctrlDebugLevel = wx.TextCtrl(
-            panelDebugLevel, wx.ID_ANY, str(AppSettings.DEBUG_LEVEL), posTextCtrl, sizeTextCtrl)
+            self.panelDebugLevel, wx.ID_ANY, str(AppSettings.DEBUG_LEVEL), self.posTextCtrl, self.sizeTextCtrl)
 
-        boxButtons = wx.BoxSizer(wx.HORIZONTAL)
-        boxButtons.Add(wx.Button(self, wx.ID_OK,     size=sizeButton))
-        boxButtons.Add(wx.Button(self, wx.ID_CANCEL, size=sizeButton))
+        self.boxButtons = wx.BoxSizer(wx.HORIZONTAL)
+        self.boxButtons.Add(wx.Button(self, wx.ID_OK,     size=self.sizeButton))
+        self.boxButtons.Add(wx.Button(self, wx.ID_CANCEL, size=self.sizeButton))
 
         sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(panelPorts,      1, wx.LEFT)
-        sizer.Add(panelBauds,      1, wx.LEFT)
-        sizer.Add(panelProtocols,  1, wx.LEFT)
+        sizer.Add(self.panelPorts,      1, wx.LEFT)
+        sizer.Add(self.panelBauds,      1, wx.LEFT)
+        sizer.Add(self.panelProtocols,  1, wx.LEFT)
         sizer.Add(self.checkFast,  1, wx.LEFT)
         sizer.Add(self.checkVolts, 1, wx.LEFT)
-        sizer.Add(panelTimeout,    0, wx.LEFT)
-        sizer.Add(panelReconnect,  0, wx.LEFT)
-        sizer.Add(panelDebugLevel, 0, wx.LEFT)
-        sizer.Add(boxButtons,      1, wx.CENTER)
+        sizer.Add(self.panelTimeout,    0, wx.LEFT)
+        sizer.Add(self.panelReconnect,  0, wx.LEFT)
+        sizer.Add(self.panelDebugLevel, 0, wx.LEFT)
+        sizer.Add(self.boxButtons,      1, wx.CENTER)
 
         self.SetSizer(sizer)
         self.SetAutoLayout(True)
         sizer.Fit(self)
+
+    def setPorts(self):
+        self.checkPorts()
+        if self.choicePorts == None:
+            self.choicePorts = \
+                wx.Choice(self.panelPorts, wx.ID_ANY, self.posTextCtrl, self.sizeChoiceText, self.ports)
+        else:
+            self.choicePorts.Clear()
+            self.choicePorts.AppendItems(self.ports)
+        # Set the default serial port choice...
+        iIndex = 0
+        if (self.connection.PORTNAME != None) and (self.connection.PORTNAME in self.ports):
+            iIndex = self.ports.index(self.connection.PORTNAME)
+        self.choicePorts.SetSelection(iIndex)
 
     def checkPorts(self):
         self.ports = OBD2Port.getPorts()
@@ -235,9 +261,9 @@ class ConfigDlg(wx.Dialog):
             self.bGoodPorts = False
             self.ports = ["No Available Devices on Ports!"]
 
-    def processSettings(self, controls, result):
+    def processSettings(self, controls, result): # controls is a Frame object
         if (result == wx.ID_OK):
-            # Create sections...
+            # Create sections...Frame
             if not self.config.has_section("OBD") :
                 self.config.add_section("OBD")
             if not self.config.has_section("DEBUG") :
@@ -251,10 +277,10 @@ class ConfigDlg(wx.Dialog):
 
             # Set and save PROTOCOL...
             iIndex += 1
-            self.configSettings.PROTOCOL = self.protocolShort[self.choiceProtocols.GetSelection()]
-            self.config.set("OBD", "PROTOCOL", self.configSettings.PROTOCOL)
-            controls.listctrlStatus.SetItem(iIndex, 1, self.configSettings.PROTOCOL)
-            controls.StatusBar.SetStatusText(self.stateTitle[iIndex] + self.configSettings.PROTOCOL, iIndex)
+            self.connection.PROTOCOL = self.protocolShort[self.choiceProtocols.GetSelection()]
+            self.config.set("OBD", "PROTOCOL", self.connection.PROTOCOL)
+            controls.listctrlStatus.SetItem(iIndex, 1, self.connection.PROTOCOL)
+            controls.StatusBar.SetStatusText(self.stateTitle[iIndex] + self.connection.PROTOCOL, iIndex)
 
             # Set and save CABLE VERSION...
             iIndex += 1
@@ -271,59 +297,61 @@ class ConfigDlg(wx.Dialog):
             # Set and save PORTNAME...
             iIndex += 1
             if self.bGoodPorts:
-                self.configSettings.PORTNAME = self.ports[self.choicePorts.GetSelection()]
+                self.connection.PORTNAME = self.ports[self.choicePorts.GetSelection()]
             else:
-                self.configSettings.PORTNAME = Connection.strPortNameDefault
-            self.config.set("OBD", "PORT", self.configSettings.PORTNAME)
-            controls.listctrlStatus.SetItem(iIndex, 1, self.configSettings.PORTNAME)
-            controls.StatusBar.SetStatusText(self.stateTitle[iIndex] + self.configSettings.PORTNAME, iIndex)
+                self.connection.PORTNAME = Connection.strPortNameDefault
+            self.config.set("OBD", "PORT", self.connection.PORTNAME)
+            controls.listctrlStatus.SetItem(iIndex, 1, self.connection.PORTNAME)
+            controls.StatusBar.SetStatusText(self.stateTitle[iIndex] + self.connection.PORTNAME, iIndex)
 
             # Set and save BAUD...
             iIndex += 1
-            if self.choiceBauds.GetSelection() == 0 :
-                self.configSettings.BAUD = "Auto"
+            iSelection = self.choiceBauds.GetSelection()
+            if iSelection == 0 : # ...Auto Select
+                self.connection.BAUD = 0
             else :
-                self.configSettings.BAUD = int(self.bauds[self.choiceBauds.GetSelection()])
-            self.config.set("OBD", "BAUD", self.configSettings.BAUD)
-            strBaud = str(self.configSettings.BAUD)
-            controls.listctrlStatus.SetItem(iIndex, 1, strBaud)
+                self.connection.BAUD = int(self.bauds[iSelection])
+            self.config.set("OBD", "BAUD", self.connection.BAUD)
+            strBaud = str(self.connection.BAUD) if iSelection > 0 else "Auto"
+            controls.listctrlStatus.SetItem(iIndex, 1, strBaud )
             controls.StatusBar.SetStatusText(self.stateTitle[iIndex] + strBaud, iIndex)
 
             # Set and save FAST...
             iIndex += 1
-            self.configSettings.FAST = self.checkFast.GetValue()
-            self.config.set("OBD", "FAST", self.configSettings.FAST)
-            strFast = str(self.configSettings.FAST)
+            self.connection.FAST = self.checkFast.GetValue()
+            self.config.set("OBD", "FAST", self.connection.FAST)
+            strFast = str(self.connection.FAST)
             controls.listctrlStatus.SetItem(iIndex, 1, strFast)
-            controls.StatusBar.SetStatusText(self.stateTitle[iIndex] + (AppSettings.CHAR_CHECK if self.configSettings.FAST else AppSettings.CHAR_BALLOTX), iIndex)
+            controls.StatusBar.SetStatusText(self.stateTitle[iIndex] + (AppSettings.CHAR_CHECK if self.connection.FAST else AppSettings.CHAR_BALLOTX), iIndex)
 
             # Set and save CHECKVOLTS...
             iIndex += 1
-            self.configSettings.CHECKVOLTS = self.checkVolts.GetValue()
-            self.config.set("OBD", "CHECKVOLTS", self.configSettings.CHECKVOLTS)
-            strCheckVolts = str(self.configSettings.CHECKVOLTS)
+            self.connection.CHECKVOLTS = self.checkVolts.GetValue()
+            self.config.set("OBD", "CHECKVOLTS", self.connection.CHECKVOLTS)
+            strCheckVolts = str(self.connection.CHECKVOLTS)
             controls.listctrlStatus.SetItem(iIndex, 1, strCheckVolts)
-            controls.StatusBar.SetStatusText(self.stateTitle[iIndex] + (AppSettings.CHAR_CHECK if self.configSettings.CHECKVOLTS else AppSettings.CHAR_BALLOTX), iIndex)
+            controls.StatusBar.SetStatusText(self.stateTitle[iIndex] + (AppSettings.CHAR_CHECK if self.connection.CHECKVOLTS else AppSettings.CHAR_BALLOTX), iIndex)
 
             # Set and save TIMEOUT...
             iIndex += 1
-            self.configSettings.TIMEOUT = int(self.ctrlTimeout.GetValue())
-            self.config.set("OBD", "TIMEOUT", self.configSettings.TIMEOUT)
-            strTimeOut = str(self.configSettings.TIMEOUT)
+            self.connection.TIMEOUT = int(self.ctrlTimeout.GetValue())
+            self.config.set("OBD", "TIMEOUT", self.connection.TIMEOUT)
+            strTimeOut = str(self.connection.TIMEOUT)
             controls.listctrlStatus.SetItem(iIndex, 1, strTimeOut)
             controls.StatusBar.SetStatusText(self.stateTitle[iIndex] + strTimeOut, iIndex)
 
             # Set and save RECONNECTS...
             iIndex += 1
-            self.configSettings.RECONNECTS = int(self.ctrlReconnect.GetValue())
-            self.config.set("OBD", "RECONNECTS", self.configSettings.RECONNECTS)
-            strReconnects = str(self.configSettings.RECONNECTS)
+            self.connection.RECONNECTS = int(self.ctrlReconnect.GetValue())
+            self.config.set("OBD", "RECONNECTS", self.connection.RECONNECTS)
+            strReconnects = str(self.connection.RECONNECTS)
             controls.listctrlStatus.SetItem(iIndex, 1, strReconnects)
             controls.StatusBar.SetStatusText(self.stateTitle[iIndex] + strReconnects, iIndex)
 
             # Set and save DEBUGLEVEL...
             iIndex += 1
-            AppSettings.DEBUG_LEVEL = int(self.ctrlDebugLevel.GetValue())
+            AppSettings.DEBUG_LEVEL = int(self.ctrlDebugLevel.GetValue() )
+            OBD2Device.setLogging()
             self.config.set("DEBUG", "LEVEL", AppSettings.DEBUG_LEVEL)
             strDebugLevel = str(AppSettings.DEBUG_LEVEL)
             controls.listctrlStatus.SetItem(iIndex, 1, strDebugLevel)
@@ -344,31 +372,32 @@ class ConfigDlg(wx.Dialog):
     def setStatusBar(self, theStatusBar, ):
         theStatusBar.SetStatusWidths([50, 58, -1, 58, -1, 96, 50, 62, 90, 68, 94])
         theStatusBar.SetStatusText(self.stateTitle[ 0] + AppSettings.CHAR_BALLOTX, 0)
-        theStatusBar.SetStatusText(self.stateTitle[ 1] + self.configSettings.PROTOCOL, 1)
+        theStatusBar.SetStatusText(self.stateTitle[ 1] + self.connection.PROTOCOL, 1)
         theStatusBar.SetStatusText(self.stateTitle[ 2] + "Unknown", 2)
         theStatusBar.SetStatusText(self.stateTitle[ 3] + "---", 3)
-        theStatusBar.SetStatusText(self.stateTitle[ 4] + self.configSettings.PORTNAME, 4)
-        theStatusBar.SetStatusText(self.stateTitle[ 5] + str(self.configSettings.BAUD), 5)
-        theStatusBar.SetStatusText(self.stateTitle[ 6] + (AppSettings.CHAR_CHECK if self.configSettings.FAST else AppSettings.CHAR_BALLOTX), 6)
-        theStatusBar.SetStatusText(self.stateTitle[ 7] + (AppSettings.CHAR_CHECK if self.configSettings.CHECKVOLTS else AppSettings.CHAR_BALLOTX), 7)
-        theStatusBar.SetStatusText(self.stateTitle[ 8] + str(self.configSettings.TIMEOUT), 8)
-        theStatusBar.SetStatusText(self.stateTitle[ 9] + str(self.configSettings.RECONNECTS), 9)
+        theStatusBar.SetStatusText(self.stateTitle[ 4] + self.connection.PORTNAME, 4)
+        theStatusBar.SetStatusText(self.stateTitle[ 5] + str(self.connection.BAUD), 5)
+        theStatusBar.SetStatusText(self.stateTitle[ 6] + (AppSettings.CHAR_CHECK if self.connection.FAST else AppSettings.CHAR_BALLOTX), 6)
+        theStatusBar.SetStatusText(self.stateTitle[ 7] + (AppSettings.CHAR_CHECK if self.connection.CHECKVOLTS else AppSettings.CHAR_BALLOTX), 7)
+        theStatusBar.SetStatusText(self.stateTitle[ 8] + str(self.connection.TIMEOUT), 8)
+        theStatusBar.SetStatusText(self.stateTitle[ 9] + str(self.connection.RECONNECTS), 9)
         theStatusBar.SetStatusText(self.stateTitle[10] + str(AppSettings.DEBUG_LEVEL), 10)
 
     def setStatusListCtrl(self, theStatusListCtrl):
         theStatusListCtrl.InsertColumn(0, "Description", format=wx.LIST_FORMAT_RIGHT, width=150)
         theStatusListCtrl.InsertColumn(1, "Value")
-        theStatusListCtrl.Append(["Link:",          AppSettings.CHAR_BALLOTX])           #  0
-        theStatusListCtrl.Append(["Protocol:",      self.configSettings.PROTOCOL])   #  1
-        theStatusListCtrl.Append(["Cable Version:", "Unknown"])                      #  2
-        theStatusListCtrl.Append(["Cable Volts:",   "---"])                          #  3
-        theStatusListCtrl.Append(["Serial Port:",   self.configSettings.PORTNAME])   #  4
-        theStatusListCtrl.Append(["Baud:",          self.configSettings.BAUD])       #  5
-        theStatusListCtrl.Append(["Fast Connect:",  self.configSettings.FAST])       #  6
-        theStatusListCtrl.Append(["Check Voltage:", self.configSettings.CHECKVOLTS]) #  7
-        theStatusListCtrl.Append(["Timeout:",       self.configSettings.TIMEOUT])    #  8
-        theStatusListCtrl.Append(["Reconnects:",    self.configSettings.RECONNECTS]) #  9
-        theStatusListCtrl.Append(["Debug:",         AppSettings.DEBUG_LEVEL])        # 10
+        theStatusListCtrl.Append(["Link:",          AppSettings.CHAR_BALLOTX])   #  0
+        theStatusListCtrl.Append(["Protocol:",      self.connection.PROTOCOL])   #  1
+        theStatusListCtrl.Append(["Cable Version:", "Unknown"])                  #  2
+        theStatusListCtrl.Append(["Cable Volts:",   "---"])                      #  3
+        theStatusListCtrl.Append(["Serial Port:",   self.connection.PORTNAME])   #  4
+        strBaud = str(self.connection.BAUD) if self.connection.BAUD > 0 else "Auto"
+        theStatusListCtrl.Append(["Baud:",          strBaud])                    #  5
+        theStatusListCtrl.Append(["Fast Connect:",  self.connection.FAST])       #  6
+        theStatusListCtrl.Append(["Check Voltage:", self.connection.CHECKVOLTS]) #  7
+        theStatusListCtrl.Append(["Timeout:",       self.connection.TIMEOUT])    #  8
+        theStatusListCtrl.Append(["Reconnects:",    self.connection.RECONNECTS]) #  9
+        theStatusListCtrl.Append(["Debug:",         AppSettings.DEBUG_LEVEL])    # 10
 
     def updateStatus(self, controls, iItem, iColumn, strValue):
         controls.listctrlStatus.SetItem(iItem, iColumn, strValue)

@@ -4,9 +4,11 @@
 #
 # Response.py
 #
-# Copyright 2023 Keven L. Ates (atescomp@gmail.com)
+# Copyright 2021-2023 Keven L. Ates (atescomp@gmail.com)
 #
 # This file is part of the Onboard Diagnostics II Advanced (pyOBDA) system.
+#
+# This file was rewritten from the project "python-OBD" file "obd/OBDResponse.py"
 #
 # pyOBDA is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,8 +21,8 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with pyOBDA; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+# along with pyOBDA; if not, write to the Free Software Foundation, Inc.,
+# 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ############################################################################
 
 
@@ -50,7 +52,7 @@ class Response:
         else:
             return str(type(self.value))
 
-    def is_null(self):
+    def isNull(self):
         return (not self.messages) or (self.value == None)
 
     def __str__(self):
