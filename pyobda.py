@@ -26,6 +26,7 @@
 
 import wx
 
+import AppSettings
 from Frame import Frame
 
 #
@@ -37,7 +38,7 @@ class OBDA_App(wx.App):
         # Setup Main Frame
         # ====================
 
-        frame = Frame("OBD-II Advanced")
+        frame = Frame("OBD-II Advanced v" + AppSettings.VERSION)
         self.SetTopWindow(frame)
         frame.Center();
         frame.Show(True)

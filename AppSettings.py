@@ -23,6 +23,8 @@
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ############################################################################
 
+VERSION = "1.5.0"
+
 ID_ABOUT  = 101
 ID_EXIT   = 110
 ID_CONFIG = 500
@@ -52,7 +54,7 @@ CHAR_QMARK   = u'\u003F'
 DEBUG_LEVEL = 5  # ...default - debug everthing, changed by config
 
 STR_HELP_TEXT = \
-    "Onboard Diagnostics II Advanced: pyOBDA\n" + \
+    "Onboard Diagnostics II Advanced:  pyOBDA  Version " + VERSION + "\n" + \
     "  (C) 2021-2023 Keven L. Ates (atescomp@gmail.com)\n" + \
     "\n" + \
     "To setup a configuration for pyOBDA:\n" + \
