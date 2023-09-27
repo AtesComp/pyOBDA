@@ -57,10 +57,10 @@ class ELM327:
     #   ecus()
 
     # ELM Chevron (prompt)
-    ELM_PROMPT = b'>'
+    ELM_PROMPT = '>'
 
-    # ELM Low Power state 'OK' indicated
-    ELM_LP_ACTIVE = b'OK'
+    # ELM 'OK' (successful reply)
+    ELM_OK = 'OK'
 
     _SUPPORTED_PROTOCOLS = {
         # "0" : None = Automatic Mode
@@ -495,10 +495,10 @@ class ELM327:
             logger.info("Unconnected: Cannot enter Low Power mode")
             return None
 
-        r = self.__send(b"AT LP", delay=1, bytesEndMarker=self.ELM_LP_ACTIVE)
+        r = self.__send(b"AT LP", delay=1)
 
         if 'OK' in r:
-            logger.debug("Successfully entered Low Power mode")
+            logger.debug("Low Power mode succeeded")
             self.__bLowPower = True
         else:
             logger.debug("Low Power mode FAILED")
@@ -564,7 +564,7 @@ class ELM327:
 
         lines = self.__send(cmd)
         # If the prompt ends the last line, remove it...
-        if len(lines) > 0 and lines[-1].endswith( self.ELM_PROMPT.decode("ascii", "ignore") ):
+        if len(lines) > 0 and lines[-1].endswith( self.ELM_PROMPT ):
             lines[-1] = lines[-1][:-1]
         # If the last line is now empty, remove it...
         if len(lines[-1]) == 0:
@@ -573,7 +573,7 @@ class ELM327:
         messages = self.__objProtocol(lines)
         return messages
 
-    def __send(self, cmd, delay = None, bytesEndMarker:bytes = ELM_PROMPT):
+    def __send(self, cmd, delay = None):
         # An unprotected send() function
         #
         # This will __write() the given string, no questions asked.
@@ -589,13 +589,13 @@ class ELM327:
             time.sleep(delay)
             delayed += delay
 
-        r = self.__read(bytesEndMarker=bytesEndMarker)
+        r = self.__read()
         while delayed < 1.0 and len(r) <= 0:
             d = 0.1
             logger.debug("No response...wait: %f seconds" % d)
             time.sleep(d)
             delayed += 1.0 # d
-            r = self.__read(bytesEndMarker=bytesEndMarker)
+            r = self.__read()
         return r
 
     def __write(self, cmd):
@@ -617,7 +617,7 @@ class ELM327:
         else:
             logger.info("Unconnected: Cannot write!")
 
-    def __read(self, bytesEndMarker:bytes = ELM_PROMPT):
+    def __read(self):
         # A "low-level" read function
         #
         # Accumulate characters until the end marker (by default, the prompt) is seen.
@@ -678,21 +678,28 @@ class ELM327:
         for iIndex in range( len(baBuffer) ):
             ch = baBuffer[iIndex]
             strLogC += ( chr(ch) if (ch > 31 and ch != 127) else '_' )
-            strLogV += hex(ch)[2:].upper() + ' '
-        logger.debug("Buffer Contents: " + strLogC)
-        logger.debug("            Hex: " + strLogV)
+            strLogV += hex(ch)[2:].upper().zfill(2) + ' '
+        logger.debug("Buffer: " + strLogC)
+        logger.debug("   Hex: " + strLogV)
 
         # Remove nulls...
         baBuffer = re.sub(b"\x00", b"", baBuffer)
-
-        ## If the prompt ends the buffer, remove it...
-        #if buffer.endswith(self.ELM_PROMPT):
-        #    buffer = buffer[:-1]
 
         # Convert the bytearray into a string...
         strBuffer = baBuffer.decode("ascii", "ignore")
 
         # Split the string into lines--remove blank lines and trailing spaces...
         astrLines = [ strLine.strip() for strLine in re.split("[\r\n]", strBuffer) if bool(strLine) ]
+
+        # Log...
+        strLogC = ""
+        strLogV = ""
+        for iIndex in range( len(astrLines) ):
+            for iChar in range ( len( astrLines[iIndex] ) ):
+                ch = astrLines[iIndex][iChar]
+                strLogC += ( chr(ch) if (ch > 31 and ch != 127) else '_' )
+                strLogV += hex(ch)[2:].upper().zfill(2) + ' '
+        logger.debug(" After: " + strLogC)
+        logger.debug("   Hex: " + strLogV)
 
         return astrLines

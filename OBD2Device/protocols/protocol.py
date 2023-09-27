@@ -291,7 +291,7 @@ class Protocol(object):
     def parse_frame(self, frame):
         # Override in subclass for each protocol
         #
-        # Recieve a Frame object preloaded with the raw string line from the vehicle.
+        # Receive a Frame object preloaded with the raw string line from the vehicle.
         #
         # Return a boolean. If fatal errors were found, this function should return False
         # and the Frame will be dropped.
@@ -301,7 +301,7 @@ class Protocol(object):
     def parse_message(self, message):
         # Override in subclass for each protocol
         #
-        # Recieve a Message object preloaded with a list of Frame objects.
+        # Receive a Message object preloaded with a list of Frame objects.
         #
         # Return a boolean. If fatal errors were found, this function should return False
         # and the Message will be dropped.

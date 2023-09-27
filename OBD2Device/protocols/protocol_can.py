@@ -166,7 +166,7 @@ class CANProtocol(Protocol):
             frame = frames[0]
 
             if frame.type != self.FRAME_TYPE_SF:
-                logger.debug("Recieved lone frame not marked as single frame")
+                logger.debug("Received lone frame not marked as single frame")
                 return False
 
             # extract data, ignore PCI byte and anything after the marked length
@@ -191,7 +191,7 @@ class CANProtocol(Protocol):
 
             # check that we captured only one first-frame
             if len(ff) > 1:
-                logger.debug("Recieved multiple frames marked FF")
+                logger.debug("Received multiple frames marked FF")
                 return False
             elif len(ff) == 0:
                 logger.debug("Never received frame marked FF")
@@ -222,7 +222,7 @@ class CANProtocol(Protocol):
             # check contiguity, and that we aren't missing any frames
             indices = [f.seq_index for f in cf]
             if not contiguous(indices, 1, len(cf)):
-                logger.debug("Recieved multiline response with missing frames")
+                logger.debug("Received multiline response with missing frames")
                 return False
 
             # first frame:

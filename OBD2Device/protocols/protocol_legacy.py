@@ -87,7 +87,7 @@ class LegacyProtocol(Protocol):
         # test that all frames are responses to the same Mode (SID)
         if len(frames) > 1:
             if not all([mode == f.data[0] for f in frames[1:]]):
-                logger.debug("Recieved frames from multiple commands")
+                logger.debug("Received frames from multiple commands")
                 return False
 
         # legacy protocols have different re-assembly
@@ -146,7 +146,7 @@ class LegacyProtocol(Protocol):
                 # check contiguity
                 indices = [f.data[2] for f in frames]
                 if not contiguous(indices, 1, len(frames)):
-                    logger.debug("Recieved multiline response with missing frames")
+                    logger.debug("Received multiline response with missing frames")
                     return False
 
                 # now that they're in order, accumulate the data from each frame

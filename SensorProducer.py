@@ -100,7 +100,7 @@ class SensorProducer(threading.Thread):
                     wx.PostEvent( self.controls, EventDebug( [2, "DTC Page..."] ) )
 
                 if self.controls.ThreadControl == 1:  # ...Clear DTC...
-                    response = self.connection.PORT.clear_dtc()
+                    response = self.connection.PORT.clearDTC()
                     # Response is N/A for CLEAR_DTC
 
                     # Before resetting ThreadControl, check for a disconnect
