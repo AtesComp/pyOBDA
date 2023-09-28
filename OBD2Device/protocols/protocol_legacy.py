@@ -43,7 +43,7 @@ class LegacyProtocol(Protocol):
     def __init__(self, lines_0100):
         Protocol.__init__(self, lines_0100)
 
-    def parse_frame(self, frame):
+    def parseFrameData(self, frame):
 
         raw = frame.raw
 

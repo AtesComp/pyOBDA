@@ -32,45 +32,54 @@ import logging
 from binascii import unhexlify
 
 from OBD2Device.utils import contiguous
-from .protocol import Protocol
+from protocol import Protocol, Frame
 
 logger = logging.getLogger(__name__)
 
 
-class CANProtocol(Protocol):
+#
+# CLASS: Controller Area Network Protocol
+#
+class ProtocolCAN(Protocol):
     TX_ID_ENGINE = 0
     TX_ID_TRANSMISSION = 1
 
-    FRAME_TYPE_SF = 0x00  # single frame
-    FRAME_TYPE_FF = 0x10  # first frame of multi-frame message
-    FRAME_TYPE_CF = 0x20  # consecutive frame(s) of multi-frame message
+    FRAME_TYPE_SF = 0x00 # ...single frame
+    FRAME_TYPE_FF = 0x10 # ...first frame of multi-frame message
+    FRAME_TYPE_CF = 0x20 # ...consecutive frame(s) of multi-frame message
 
-    def __init__(self, lines_0100, id_bits):
-        # this needs to be set FIRST, since the base
-        # Protocol __init__ uses the parsing system.
-        self.id_bits = id_bits
-        Protocol.__init__(self, lines_0100)
+    def __init__(self, strResp0100 : str, iBitesID : int):
+        # Set the ID Bits FIRST since the base Protocol __init__() uses the parsing system
+        self.iBitsID = iBitesID
+        Protocol.__init__(self, strResp0100)
 
-    def parse_frame(self, frame):
+    def parseFrameData(self, frame: Frame):
 
-        raw = frame.raw
+        strRaw = frame.strRaw
 
-        # pad 11-bit CAN headers out to 32 bits for consistency,
-        # since ELM already does this for 29-bit CAN headers
+        # ELM CAN headers are 11 bit and 29 bits
+        #    Pad the headers to 32 bits
+        # NOTE: 29 bits must use 4 bytes, 8 nibbles by default:
+        #           ---x xxxx xxxx xxxx xxxx xxxx xxxx xxxx
+        #       11 bits must use 1.5 bytes, 3 nibbles by default.
+        #           ---- ---- ---- ---- ---- -xxx xxxx xxxx
 
-        #        7 E8 06 41 00 BE 7F B8 13
-        # to:
-        # 00 00 07 E8 06 41 00 BE 7F B8 13
+        # Increase 11 bit CAN headers to 4 bytes.
+        #   Example:
+        #              _ __ = 3 nibbles
+        #              7 E8 06 41 00 BE 7F B8 13
+        #   to:
+        #       00 00 07 E8 06 41 00 BE 7F B8 13
+        if self.iBitsID == 11:
+            strRaw = "00 00 0" + strRaw
 
-        if self.id_bits == 11:
-            raw = "00000" + raw
-
-        # Handle odd size frames and drop
-        if len(raw) & 1:
+        # Handle odd size frames
+        # NOTE: To unhexlify(), an even number of digits is required
+        if len(strRaw) & 1:
             logger.debug("Dropping frame for being odd")
             return False
 
-        raw_bytes = bytearray(unhexlify(raw))
+        raw_bytes = bytearray( unhexlify(strRaw) )
 
         # check for valid size
 
@@ -88,7 +97,7 @@ class CANProtocol(Protocol):
             return False
 
         # read header information
-        if self.id_bits == 11:
+        if self.iBitsID == 11:
             # Ex.
             #       [   ]
             # 00 00 07 E8 06 41 00 BE 7F B8 13
@@ -117,12 +126,12 @@ class CANProtocol(Protocol):
         # extract the frame data
         #             [      Frame       ]
         # 00 00 07 E8 06 41 00 BE 7F B8 13
-        frame.data = raw_bytes[4:]
+        frame.baData = raw_bytes[4:]
 
         # read PCI byte (always first byte in the data section)
         #             v
         # 00 00 07 E8 06 41 00 BE 7F B8 13
-        frame.type = frame.data[0] & 0xF0
+        frame.type = frame.baData[0] & 0xF0
         if frame.type not in [self.FRAME_TYPE_SF,
                               self.FRAME_TYPE_FF,
                               self.FRAME_TYPE_CF]:
@@ -133,7 +142,7 @@ class CANProtocol(Protocol):
             # single frames have 4 bit length codes
             #              v
             # 00 00 07 E8 06 41 00 BE 7F B8 13
-            frame.data_len = frame.data[0] & 0x0F
+            frame.data_len = frame.baData[0] & 0x0F
 
             # drop frames with no data
             if frame.data_len == 0:
@@ -143,8 +152,8 @@ class CANProtocol(Protocol):
             # First frames have 12 bit length codes
             #              v vv
             # 00 00 07 E8 10 20 49 04 00 01 02 03
-            frame.data_len = (frame.data[0] & 0x0F) << 8
-            frame.data_len += frame.data[1]
+            frame.data_len = (frame.baData[0] & 0x0F) << 8
+            frame.data_len += frame.baData[1]
 
             # drop frames with no data
             if frame.data_len == 0:
@@ -154,7 +163,7 @@ class CANProtocol(Protocol):
             # Consecutive frames have 4 bit sequence indices
             #              v
             # 00 00 07 E8 21 04 05 06 07 08 09 0A
-            frame.seq_index = frame.data[0] & 0x0F
+            frame.seq_index = frame.baData[0] & 0x0F
 
         return True
 
@@ -275,41 +284,41 @@ class CANProtocol(Protocol):
 ##############################################
 
 
-class ISO_15765_4_11bit_500k(CANProtocol):
+class ISO_15765_4_11bit_500k(ProtocolCAN):
     ELM_NAME = "ISO 15765-4 (CAN 11/500)"
     ELM_ID = "6"
 
     def __init__(self, lines_0100):
-        CANProtocol.__init__(self, lines_0100, id_bits=11)
+        ProtocolCAN.__init__(self, lines_0100, iBitesID=11)
 
 
-class ISO_15765_4_29bit_500k(CANProtocol):
+class ISO_15765_4_29bit_500k(ProtocolCAN):
     ELM_NAME = "ISO 15765-4 (CAN 29/500)"
     ELM_ID = "7"
 
     def __init__(self, lines_0100):
-        CANProtocol.__init__(self, lines_0100, id_bits=29)
+        ProtocolCAN.__init__(self, lines_0100, iBitesID=29)
 
 
-class ISO_15765_4_11bit_250k(CANProtocol):
+class ISO_15765_4_11bit_250k(ProtocolCAN):
     ELM_NAME = "ISO 15765-4 (CAN 11/250)"
     ELM_ID = "8"
 
     def __init__(self, lines_0100):
-        CANProtocol.__init__(self, lines_0100, id_bits=11)
+        ProtocolCAN.__init__(self, lines_0100, iBitesID=11)
 
 
-class ISO_15765_4_29bit_250k(CANProtocol):
+class ISO_15765_4_29bit_250k(ProtocolCAN):
     ELM_NAME = "ISO 15765-4 (CAN 29/250)"
     ELM_ID = "9"
 
     def __init__(self, lines_0100):
-        CANProtocol.__init__(self, lines_0100, id_bits=29)
+        ProtocolCAN.__init__(self, lines_0100, iBitesID=29)
 
 
-class SAE_J1939(CANProtocol):
+class SAE_J1939(ProtocolCAN):
     ELM_NAME = "SAE J1939 (CAN 29/250)"
     ELM_ID = "A"
 
     def __init__(self, lines_0100):
-        CANProtocol.__init__(self, lines_0100, id_bits=29)
+        ProtocolCAN.__init__(self, lines_0100, iBitesID=29)

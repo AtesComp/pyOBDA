@@ -37,7 +37,7 @@ class UnknownProtocol(Protocol):
     #
     # Used for when a connection to the ELM has been made, but the vehicle hasn't responded.
 
-    def parse_frame(self, frame):
+    def parseFrameData(self, frame):
         return True  # ...default
 
     def parse_message(self, message):

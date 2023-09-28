@@ -80,7 +80,12 @@ class ELM327:
         # "C" : None, # user defined 2
     }
 
-    # Order of fallback protocols to try when command "ATSP0" doesn't produce the expected protocol...
+    #
+    # Automatic Protocol Order
+    #
+    # Fallback protocol order to try when in automatic mode or the command "ATSP0" doesn't produce the
+    # expected protocol.
+    #
     _TRY_PROTOCOL_ORDER = [
         "6",  # ISO_15765_4_11bit_500k  CAN
         "8",  # ISO_15765_4_11bit_250k  CAN
@@ -94,29 +99,39 @@ class ELM327:
         "A",  # SAE_J1939               CAN
     ]
 
-    # Bits Per Second (bps)
+    #
+    # Baud Rates
     #
     # NOTE: This is called "Baud Rate" in documentation, but baud refers to a generic symbol rate or
     #       modulation rate in symbols per second or pulses per second. More accurately, digital
     #       communication is specifically bits per second (bps) for components such as ELM.
     #
-    # Startup bps are 38400 and 9600 unless reprogrammed via the "PP 0C" command. Additionally, the
-    # communication channel must be set to 8 bit, No parity, 1 stop bit.
+    # Startup default baud rates are 9600 (if pin 6 = 0V at power up) and 38400 unless reprogrammed
+    # via the "PP 0C" command. Additionally, the communication channel must be set to 8 bits, No parity,
+    # 1 stop bit.
     # Other bps 19200, 38400, 57600, 115200, 230400, 500000 are listed in the ELM327 datasheet on page 59.
     #
-    # For comm rate information, see the ELM327 datasheet pages 3, 7, 10, 17, 33, 59, 63-64
+    # For baud rate information, see the ELM327 datasheet pages 3, 7, 10, 17, 33, 59, 63-64
     #
-    # TODO: When pyserial supports non-standard baud rates on platforms other than Linux, add 500K.
+    # TODO: When pyserial supports additional baud rates on platforms other than Linux, add 500K.
     #
-    # Try connecting using the two default baud rates first, then fastest to slowest since settings using a
-    # slower baud rate infers a slower connection time to detect it.
-    _TRY_BPS_ORDER = [
-        38400, # ...default High bps
-         9600, # ...default Low bps
-       230400, 115200, 57600, 19200 # ...other bps
+    # Use these baud rates for automatic detection for actual baud rate. The baud rates are listed from
+    # fastest to slowest. The process will try all rates in order until the appropriate '>' prompt
+    # character ends any data received. Faster rates should be tried first since comms should use the
+    # fastest rate the device can handle.
+    #
+    _TRY_BAUD_ORDER = [
+       230400,
+       115200,
+        57600,
+        38400, # ...default High baud
+        19200,
+         9600, # ...default Low baud
     ]
 
-    # Bad CAN Maessages
+    #
+    # Bad CAN Messages
+    #
     _BAD_CAN_MSGS = [
         "UNABLE TO CONNECT",
         "CAN ERROR",
@@ -398,7 +413,7 @@ class ELM327:
         # For Baud testing, set ELM comms to a relatively fast timeout...
         self.__objPort.timeout = 0.5
 
-        for baud in self._TRY_BPS_ORDER:
+        for baud in self._TRY_BAUD_ORDER:
             logger.debug("Testing baud %d" % baud)
             self.__objPort.baudrate = baud
             self.__objPort.flushInput()
@@ -472,7 +487,7 @@ class ELM327:
         return self.__strStatus
 
     def getECUSValues(self):
-        return self.__objProtocol.ecu_map.values()
+        return self.__objProtocol.mapECU.values()
 
     def getProtocolName(self):
         return self.__objProtocol.ELM_NAME
@@ -656,16 +671,16 @@ class ELM327:
             # If nothing was received...
             if not data:
                 if len(baBuffer) == 0:
-                    logger.warning("Port Read: FAILED!")
+                    logger.warning("Port Read: End - No Data!")
                 else:
-                    logger.warning("Port Read: Abnormal end!")
+                    logger.info("Port Read: End - Data received.")
                 break
 
             baBuffer.extend(data)
             logger.info( "Port Read: Found bytes: " + str( len(baBuffer) ) )
 
             # End on the specified End Marker sequence...
-            if bytesEndMarker in baBuffer:
+            if ELM327.ELM_PROMPT.encode() in baBuffer:
                 break
 
         # Check buffer...

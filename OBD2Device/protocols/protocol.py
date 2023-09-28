@@ -43,39 +43,41 @@ Basic data models for all protocols to use
 
 
 class ECU_HEADER:
-    """ Values for the ECU headers """
+    # Values for the ECU headers
     ENGINE = b'7E0'
 
 
 class ECU:
-    """ constant flags used for marking and filtering messages """
+    # Constant Flags
+    #       Used for marking and filtering messages
 
-    ALL = 0b11111111  # used by OBDCommands to accept messages from any ECU
-    ALL_KNOWN = 0b11111110  # used to ignore unknown ECUs, since this lib probably can't handle them
+    ALL       = 0b11111111  # ...used by OBDCommands to accept messages from any ECU
+    ALL_KNOWN = 0b11111110  # ...used to ignore unknown ECUs
 
-    # each ECU gets its own bit for ease of making OR filters
-    UNKNOWN = 0b00000001  # unknowns get their own bit, since they need to be accepted by the ALL filter
-    ENGINE = 0b00000010
+    # ECU Mask Bits
+    #       Each ECU gets its own bit
+    UNKNOWN      = 0b00000001  # ...unknowns get their own bit since they need to be accepted by the ALL filter
+    ENGINE       = 0b00000010
     TRANSMISSION = 0b00000100
 
 
 class Frame(object):
-    """ represents a single parsed line of OBD output """
+    # A Frame represents a single parsed line of OBD output
 
     def __init__(self, raw):
-        self.raw = raw
-        self.data = bytearray()
+        self.strRaw = raw
+        self.baData = bytearray()
         self.priority = None
         self.addr_mode = None
         self.rx_id = None
         self.tx_id = None
         self.type = None
-        self.seq_index = 0  # only used when type = CF
+        self.seq_index = 0  # ...only used when type = CF
         self.data_len = None
 
 
 class Message(object):
-    """ represents a fully parsed OBD message of one or more Frames (lines) """
+    # A Message represents a fully parsed OBD message of one or more Frames
 
     def __init__(self, frames):
         self.frames = frames
@@ -123,59 +125,63 @@ list of Messages.
 
 
 class Protocol(object):
-    # override in subclass for each protocol
+    # OVERRIDES
+    #
+    # Override the following Class Variable in each protocol subclass.
 
-    ELM_NAME = ""  # the ELM's name for this protocol (ie, "SAE J1939 (CAN 29/250)")
-    ELM_ID = ""  # the ELM's ID for this protocol (ie, "A")
+    # ELM Values...
+    ELM_NAME = ""  # ELM Name for this protocol (ie, "SAE J1939 (CAN 29/250)")
+    ELM_ID   = ""  # ELM ID for this protocol (ie, "A")
 
-    # the TX_IDs of known ECUs
-    TX_ID_ENGINE = None
-    TX_ID_TRANSMISSION = None
+    # TX_IDs of known ECUs...
+    TX_ID_ENGINE : int       = None
+    TX_ID_TRANSMISSION : int = None
 
-    def __init__(self, lines_0100):
-        # Construct a protocol object
+    def __init__(self, strResp0100 : str):
+        # Construct a Protocol Object
         #
-        # Uses a list of raw strings from the vehicle to determine the ECU layout.
+        # Use a list of raw strings from the vehicle to determine the ECU layout.
 
-        # Create the default, empty map...
-        #   Example: self.TX_ID_ENGINE : ECU.ENGINE
-        self.ecu_map = {}
+        # Create the default, empty ECU map...
+        #   Example Map:
+        #       { self.TX_ID_ENGINE : ECU.ENGINE }
+        self.mapECU = {}
 
         if (self.TX_ID_ENGINE is not None):
-            self.ecu_map[self.TX_ID_ENGINE] = ECU.ENGINE
+            self.mapECU[self.TX_ID_ENGINE] = ECU.ENGINE
 
         if (self.TX_ID_TRANSMISSION is not None):
-            self.ecu_map[self.TX_ID_TRANSMISSION] = ECU.TRANSMISSION
+            self.mapECU[self.TX_ID_TRANSMISSION] = ECU.TRANSMISSION
 
-        # Parse the "0100" data into messages...
-        # NOTE: At this point, the "ecu" property will be UNKNOWN
-        messages = self(lines_0100) # ...__call__(lines_0100)
+        # Parse the "0100" response data into messages...
+        # NOTE: At this point, the "ECU" property will be UNKNOWN
+        messages = self.__call__(strResp0100)
 
         # Read the messages and assemble the map...
         # NOTE: Subsequent runs will be tagged correctly
-        self.populate_ecu_map(messages)
+        self.constructECUMap(messages)
 
-        # Log the ecu map...
-        for tx_id, ecu in self.ecu_map.items():
+        # Log the ECU map...
+        for strTxID, ecu in self.mapECU.items():
             names = [k for k, v in ECU.__dict__.items() if v == ecu]
             names = ", ".join(names)
-            logger.debug("map ECU %d --> %s" % (tx_id, names))
+            logger.debug("map ECU %d --> %s" % (strTxID, names))
 
-    def __call__(self, lines) -> list[Message]:
+    def __call__(self, strRespLines : str) -> list[Message]:
         # Main function
         #
-        # Accept a list of raw strings from the vehicle, split by lines
+        # Accept a list of raw strings from the vehicle, split into lines
 
         #
         # Preprocess
         #
-        # NOTE: Non-hex (non-OBD) lines shouldn't go through the big parsers since they are
+        # NOTE: Non-OBD reponses shouldn't go through the big parsers since they are
         #       typically messages such as: "NO DATA", "CAN ERROR", "UNABLE TO CONNECT", etc.,
         #       so sort them into two lists.
         obd_lines = []
         non_obd_lines = []
 
-        for line in lines:
+        for line in strRespLines:
             line_no_spaces = line.replace(' ', '')
             if isHex(line_no_spaces):
                 obd_lines.append(line_no_spaces)
@@ -194,7 +200,7 @@ class Protocol(object):
 
             # Subclass function to parse the lines into Frames...
             # NOTE: Drop frames that couldn't be parsed.
-            if self.parse_frame(frame):
+            if self.parseFrameData(frame):
                 frames.append(frame)
 
         # Group frames by transmitting ECU...
@@ -216,7 +222,7 @@ class Protocol(object):
             # Subclass function to assemble frames into Messages...
             if self.parse_message(message):
                 # Mark the appropriate ECU ID...
-                message.ecu = self.ecu_map.get(ecu, ECU.UNKNOWN)
+                message.ecu = self.mapECU.get(ecu, ECU.UNKNOWN)
                 messages.append(message)
 
         #
@@ -230,7 +236,7 @@ class Protocol(object):
 
         return messages
 
-    def populate_ecu_map(self, messages):
+    def constructECUMap(self, messages):
         # Given a list of messages from different ECUS (in response to the 0100 PID listing command),
         # associate each tx_id to an ECU ID constant
         #
@@ -248,7 +254,7 @@ class Protocol(object):
             pass
         # If one response, mark it as the engine regardless...
         elif len(messages) == 1:
-            self.ecu_map[messages[0].tx_id] = ECU.ENGINE
+            self.mapECU[messages[0].tx_id] = ECU.ENGINE
         # Otherwise...
         else:
             # The engine is important!
@@ -262,10 +268,10 @@ class Protocol(object):
                     continue
 
                 if m.tx_id == self.TX_ID_ENGINE:
-                    self.ecu_map[m.tx_id] = ECU.ENGINE
+                    self.mapECU[m.tx_id] = ECU.ENGINE
                     found_engine = True
                 elif m.tx_id == self.TX_ID_TRANSMISSION:
-                    self.ecu_map[m.tx_id] = ECU.TRANSMISSION
+                    self.mapECU[m.tx_id] = ECU.TRANSMISSION
                 # TODO: program more of these when we figure out their constants
 
             if not found_engine:
@@ -281,14 +287,14 @@ class Protocol(object):
                         best = bits
                         tx_id = message.tx_id
 
-                self.ecu_map[tx_id] = ECU.ENGINE
+                self.mapECU[tx_id] = ECU.ENGINE
 
             # Any remaining tx_ids are unknown...
             for m in messages:
-                if m.tx_id not in self.ecu_map:
-                    self.ecu_map[m.tx_id] = ECU.UNKNOWN
+                if m.tx_id not in self.mapECU:
+                    self.mapECU[m.tx_id] = ECU.UNKNOWN
 
-    def parse_frame(self, frame):
+    def parseFrameData(self, frame):
         # Override in subclass for each protocol
         #
         # Receive a Frame object preloaded with the raw string line from the vehicle.
