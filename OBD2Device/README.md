@@ -15,7 +15,7 @@
     ┃               ┃
 ┌───╂───────────────╂───┐       ┌─────────────────┐
 │   ┃               ┗━━━┿━━━━━━━┥                 │
-│   ┃   elm327.py       │       │    protocol/    │
+│   ┃   ELM327.py       │       │    Protocols/   │
 │   ┃               ┏━━━┿━━━━ ▶│                 │
 └───╂───────────────╂───┘       └─────────────────┘
     ┃               ┃
@@ -26,8 +26,14 @@
        Serial Port
 ```
 
-Not pictured:
+Files not pictured:
 
-- `CommandList.py` : defines the various OBD II commands, and which decoder they use
-- `Codes.py` : stores standardized OBD II DTC and other tables needed by `decoders.py` (mostly check-engine codes)
+- `CommandList.py` : defines the various OBD II commands and the decoders they use
+- `Codes.py` : stores standardized OBD II DTC and other tables needed by `decoders.py`
 - `Response.py` : defines objects returned by the API in response to a query.
+- `ConnectionStatus.py`
+- `Status.py`
+- `StatusTest.py`
+- `Monitor.py`
+- `MonitorTest.py`
+- `utils.py`

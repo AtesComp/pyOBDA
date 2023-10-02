@@ -32,40 +32,40 @@ logger = logging.getLogger(__name__)
 
 class Monitor:
     def __init__(self):
-        self._tests = {}  # tid : MonitorTest
+        self._testsByID : dict[int, MonitorTest] = {}  # iTestID : MonitorTest
+        self._testsByName : dict[str, MonitorTest] = {}
 
-        # make the standard TIDs available as null monitor tests
-        # until real data comes it. This also prevents things from
-        # breaking when the user looks up a standard test that's null.
+        # Initialize the standard Test IDs as null monitor tests. This fills the display with
+        # managable data when the user looks up a test that is missing actual data.
         null_test = MonitorTest()
 
-        for tid in MonitorTest.LABELS:
-            name = MonitorTest.LABELS[tid][0]
-            self.__dict__[name] = null_test
-            self._tests[tid] = null_test
+        for iTestID in MonitorTest.LABELS:
+            strName = MonitorTest.LABELS[iTestID][0]
+            self._testsByName[strName] = null_test
+            self._testsByID[iTestID] = null_test
 
-    def add_test(self, test):
-        self._tests[test.tid] = test
-        if test.name is not None:
-            self.__dict__[test.name] = test
+    def addTest(self, test : MonitorTest):
+        self._testsByID[test.iTestID] = test
+        if test.strName is not None:
+            self._testsByName[test.strName] = test
 
     @property
-    def tests(self):
-        return [test for test in self._tests.values() if not test.is_null()]
+    def tests(self) -> list[MonitorTest]:
+        return [ test for test in self._testsByID.values() if not test.isNull() ]
 
     def __str__(self):
         if len(self.tests) > 0:
             return "\n".join([str(t) for t in self.tests])
         else:
-            return "No tests to report"
+            return "Monitor: No tests to report."
 
     def __len__(self):
         return len(self.tests)
 
     def __getitem__(self, key):
         if isinstance(key, int):
-            return self._tests.get(key, MonitorTest())
+            return self._testsByID.get(key, MonitorTest())
         elif isinstance(key, str):
-            return self.__dict__.get(key, MonitorTest())
+            return self._testsByName.get(key, MonitorTest())
         else:
             logger.warning("Monitor Test results can only be retrieved by ID (int) or Name (str)")

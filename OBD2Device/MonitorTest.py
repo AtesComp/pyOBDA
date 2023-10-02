@@ -23,51 +23,52 @@
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ############################################################################
 
+from .UnitsAndScaling import UAS
 
 class MonitorTest:
 
     # Monitor Test Labels
 
     LABELS = {
-        # <TID>: (<name>, <description>)
+        # <iTestID>: (<strName>, <strDesc>)
         # 0x0 is reserved
-        0x01: ("RTL_THRESHOLD_VOLTAGE", "Rich to lean sensor threshold voltage"),
-        0x02: ("LTR_THRESHOLD_VOLTAGE", "Lean to rich sensor threshold voltage"),
-        0x03: ("LOW_VOLTAGE_SWITCH_TIME", "Low sensor voltage for switch time calculation"),
+        0x01: ("RTL_THRESHOLD_VOLTAGE",    "Rich to lean sensor threshold voltage"),
+        0x02: ("LTR_THRESHOLD_VOLTAGE",    "Lean to rich sensor threshold voltage"),
+        0x03: ("LOW_VOLTAGE_SWITCH_TIME",  "Low sensor voltage for switch time calculation"),
         0x04: ("HIGH_VOLTAGE_SWITCH_TIME", "High sensor voltage for switch time calculation"),
-        0x05: ("RTL_SWITCH_TIME", "Rich to lean sensor switch time"),
-        0x06: ("LTR_SWITCH_TIME", "Lean to rich sensor switch time"),
-        0x07: ("MIN_VOLTAGE", "Minimum sensor voltage for test cycle"),
-        0x08: ("MAX_VOLTAGE", "Maximum sensor voltage for test cycle"),
-        0x09: ("TRANSITION_TIME", "Time between sensor transitions"),
-        0x0A: ("SENSOR_PERIOD", "Sensor period"),
-        0x0B: ("MISFIRE_AVERAGE", "Average misfire counts for last ten driving cycles"),
-        0x0C: ("MISFIRE_COUNT", "Misfire counts for last/current driving cycles"),
+        0x05: ("RTL_SWITCH_TIME",          "Rich to lean sensor switch time"),
+        0x06: ("LTR_SWITCH_TIME",          "Lean to rich sensor switch time"),
+        0x07: ("MIN_VOLTAGE",              "Minimum sensor voltage for test cycle"),
+        0x08: ("MAX_VOLTAGE",              "Maximum sensor voltage for test cycle"),
+        0x09: ("TRANSITION_TIME",          "Time between sensor transitions"),
+        0x0A: ("SENSOR_PERIOD",            "Sensor period"),
+        0x0B: ("MISFIRE_AVERAGE",          "Average misfire counts for last ten driving cycles"),
+        0x0C: ("MISFIRE_COUNT",            "Misfire counts for last/current driving cycles"),
     }
 
     def __init__(self):
-        self.tid = None
-        self.name = None
-        self.desc = None
-        self.value = None
-        self.min = None
-        self.max = None
+        self.iTestID : int = None
+        self.strName : str = None
+        self.strDesc : str = None
+        self.uasValue : UAS|function = None
+        self.uasMin : UAS|function = None
+        self.uasMax : UAS|function = None
 
     @property
     def passed(self):
-        if not self.is_null():
-            return (self.value >= self.min) and (self.value <= self.max)
+        if not self.isNull():
+            return (self.uasValue >= self.uasMin) and (self.uasValue <= self.uasMax)
         else:
             return False
 
-    def is_null(self):
+    def isNull(self):
         return (
-            self.tid is None or
-            self.value is None or
-            self.min is None or
-            self.max is None
+            self.iTestID is None or
+            self.uasValue is None or
+            self.uasMin is None or
+            self.uasMax is None
         )
 
     def __str__(self):
         strPassed = "PASSED" if self.passed else "FAILED"
-        return "%s : %s [%s]" % (self.desc, str(self.value), strPassed)
+        return "%s : %s [%s]" % (self.strDesc, str(self.uasValue), strPassed)

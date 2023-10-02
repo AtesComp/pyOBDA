@@ -14,12 +14,12 @@ A J1850 Message:
          [       data       ]
 ```
 
-Message parsing by a `Protocol` (invoking `__call__`) is stateless. The only stateful part of a `Protocol` is the `ECU_Map`. These objects correlate OBD transmitter IDs (`tx_id`'s) with the various ECUs in the vehicle. Then, `Message` objects can be marked with ECU constants such as:
+Message parsing by a `Protocol` (invoking `__call__`) is stateless. The only stateful part of a `Protocol` is the `ECU_Map`. These objects correlate OBD transmitter IDs (`TxID`'s) with the various ECUs in the vehicle. Then, `Message` objects can be marked with ECU constants such as:
 
 - ENGINE
 - TRANSMISSION
 
-Ideally, these would be constant across all protocols and vehicles, but, they are not. To control this variability, each `Protocol` can define default `tx_id`'s for various ECUs. When `Protocol` objects are constructed, they accept a raw OBD response (from a 0100 command) to check these mappings. If the engine ECU can't be identified, fallback logic is used to select its `tx_id` from the 0100 response.
+Ideally, these would be constant across all protocols and vehicles, but, they are not. To control this variability, each `Protocol` can define default `TxID`'s for various ECUs. When `Protocol` objects are constructed, they accept a raw OBD response (from a 0100 command) to check these mappings. If the engine ECU can't be identified, fallback logic is used to select its `TxID` from the 0100 response.
 
 ## Subclassing the `Protocol` Class
 
@@ -35,7 +35,7 @@ Receives a single `Message` object with `Message.frames` preloaded with a list o
 
 ### Normal TX_ID's
 
-Each protocol has a different way of notating the ID of the transmitter, so each subclass must set its own attributes denoting standard `tx_id`'s. Refer to the base `Protocol` class for a list of these attributes. Currently, they are:
+Each protocol has a different way of notating the ID of the transmitter, so each subclass must set its own attributes denoting standard `TxID`'s. Refer to the base `Protocol` class for a list of these attributes. Currently, they are:
 
 - `TX_ID_ENGINE`
 

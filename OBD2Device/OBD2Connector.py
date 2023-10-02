@@ -29,13 +29,12 @@
 import logging
 
 from .ELM327 import ELM327
-from .protocols import ECU_HEADER
-from .utils import scan_serial
-
 from .CommandList import CommandList
 from .Command import Command
 from .ConnectionStatus import ConnectionStatus
 from .Response import Response
+from .Protocols.ECU import ECU
+from .utils import scanSerialPorts
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +52,7 @@ class OBD2Connector(object):
         self.bFast:bool = bFast  # ...switch to allow optimizations
         self.fTimeout:float = fTimeout
         self.__baLastCommand:bytearray = b""  # ...store previous command to run with a CR
-        self.__baLastHeader:bytearray = ECU_HEADER.ENGINE  # ...to compare with previously used header
+        self.__baLastHeader:bytearray = ECU.HEADER.ENGINE  # ...to compare with previously used header
         self.__dictFrameCounts:dict = {}  # ...count the number of return frames for each command
 
         # Validate parameters...
@@ -73,7 +72,7 @@ class OBD2Connector(object):
 
         if strPort is None :
             logger.info("Scanning for serial ports...")
-            astrPortNames = scan_serial()
+            astrPortNames = scanSerialPorts()
             logger.info("Available ports: " + str(astrPortNames))
 
             if not astrPortNames:
@@ -127,15 +126,15 @@ class OBD2Connector(object):
             # Loop through PIDs bit-array...
             for iIndex, bBit in enumerate(response.value) :
                 if bBit :
-                    mode = cmdPID.mode
-                    pid = cmdPID.pid + iIndex + 1
+                    iMode = cmdPID.mode
+                    iPID = cmdPID.pid + iIndex + 1
 
-                    if self.CMDS.hasPID(mode, pid) :
-                        self.listCommandsSupported.add(self.CMDS[mode][pid])
+                    if self.CMDS.hasPID(iMode, iPID) :
+                        self.listCommandsSupported.add(self.CMDS[iMode][iPID])
 
-                    # Set support for same Mode 2 command...
-                    if mode == 1 and self.CMDS.hasPID(2, pid) :
-                        self.listCommandsSupported.add(self.CMDS[2][pid])
+                    # If Mode 1 command, set support for same Mode 2 command...
+                    if iMode == 1 and self.CMDS.hasPID(2, iPID) :
+                        self.listCommandsSupported.add(self.CMDS[2][iPID])
 
         logger.info("Finished querying with %d commands supported." % len(self.listCommandsSupported))
 
@@ -158,7 +157,7 @@ class OBD2Connector(object):
 
         if self.interface is not None :
             logger.info("Closing connection")
-            self.__setHeader(ECU_HEADER.ENGINE)
+            self.__setHeader(ECU.HEADER.ENGINE)
             self.interface.close()
             self.interface = None
 
@@ -262,7 +261,7 @@ class OBD2Connector(object):
         if not bForce and not self.isCmdUsable(cmd) :
             return respNull
 
-        self.__setHeader(cmd.header)
+        self.__setHeader(cmd.bsHeader)
 
         logger.info("Sending command: %s" % str(cmd))
         bytesCmd = self.__buildCmdString(cmd)
@@ -276,7 +275,7 @@ class OBD2Connector(object):
 
         # If the command has an unknown frame count, log it so we can specify it next time...
         if cmd not in self.__dictFrameCounts :
-            self.__dictFrameCounts[cmd] = sum([len(msg.frames) for msg in messages])
+            self.__dictFrameCounts[cmd] = sum([len(msg.listFrames) for msg in messages])
 
         if not messages :
             logger.warn("No valid OBD Messages returned!")

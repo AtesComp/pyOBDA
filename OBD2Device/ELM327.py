@@ -29,11 +29,16 @@
 import re
 import serial
 import time
-#import unicodedata
-import logging
-from .protocols import *
 
 from .ConnectionStatus import ConnectionStatus
+from .Protocols.Legacy import \
+        SAE_J1850_PWM, SAE_J1850_VPW, ISO_9141_2, ISO_14230_4_5baud, ISO_14230_4_fast
+from .Protocols.CAN import \
+        ISO_15765_4_11bit_500k, ISO_15765_4_29bit_500k, ISO_15765_4_11bit_250k, \
+        ISO_15765_4_29bit_250k, SAE_J1939
+from .Protocols.Unknown import UnknownProtocol
+
+import logging
 
 logger = logging.getLogger(__name__)
 
@@ -64,8 +69,8 @@ class ELM327:
 
     _SUPPORTED_PROTOCOLS = {
         # "0" : None = Automatic Mode
-        #   NOTE: This isn't an actual protocol. If the ELM reports this, then we don't have enough information.
-        #         See auto_protocol()
+        #   NOTE: This isn't an actual protocol. If the ELM reports this, there is missing information.
+        #         See ELM327.findProtocol()
         "1": SAE_J1850_PWM,
         "2": SAE_J1850_VPW,
         "3": ISO_9141_2,

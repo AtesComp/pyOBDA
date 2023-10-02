@@ -2,11 +2,14 @@
 #
 # Python Onboard Diagnostics II Advanced
 #
-# StatusTest.py
+# Frame.py
 #
 # Copyright 2021-2023 Keven L. Ates (atescomp@gmail.com)
 #
 # This file is part of the Onboard Diagnostics II Advanced (pyOBDA) system.
+#
+# This file was rewritten in part from the project "python-OBD" file
+#   "obd/protocols/protocol.py"
 #
 # pyOBDA is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,19 +27,16 @@
 ############################################################################
 
 
-class StatusTest():
-    def __init__(self, strName : str = "", bAvailable : bool = False, bComplete: bool = False):
-        self.strName = strName
-        self.bAvailable = bAvailable
-        self.bComplete = bComplete
+class Frame(object):
+    # A Frame represents a single parsed line of OBD output
 
-    def __str__(self):
-        strAvailable = "Available" if self.bAvailable else "Unavailable"
-        strComplete = "Complete" if self.bComplete else "Incomplete"
-        return "Test %s: %s, %s" % (self.strName, strAvailable, strComplete)
-
-    def isNull(self):
-        return (
-            self.strName is None or
-            self.strName is ""
-        )
+    def __init__(self, strRaw : str):
+        self.strRaw : str = strRaw
+        self.baData = bytearray()
+        self.iPriority :int = None
+        self.iAddrMode : int = None
+        self.iRxID : int = None
+        self.iTxID : int = None
+        self.iType : int = None
+        self.iOrder : int = 0  # ...only used with type CF
+        self.iDataLen : int = None

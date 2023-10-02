@@ -39,7 +39,7 @@ class OBD2Port :
 
     @classmethod
     def getPorts(cls) :
-        return OBD2Device.scan_serial()
+        return OBD2Device.scanSerialPorts()
 
     def __init__(self, app, connection): # app is a Frame object, connection is a Connection object
         self.ELMver = "none"

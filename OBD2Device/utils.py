@@ -48,134 +48,119 @@ class BitArray:
     But, if this class starts getting used too much, we should switch to that lib.
     """
 
-    def __init__(self, _bytearray):
-        self.bits = ""
-        for b in _bytearray:
-            v = bin(b)[2:]
-            self.bits += ("0" * (8 - len(v))) + v  # pad it with zeros
+    def __init__(self, baValue : bytearray):
+        iLen = len(baValue) * 8
+        self.aBits = [ False for iIndex in range(iLen) ]
+        for iByteIndex in range(iLen):
+            for iBitIndex in reversed( range(8) ):
+                self.aBits[iByteIndex * 8 + iBitIndex] = baValue[iByteIndex] & (1 << iBitIndex )
 
     def __getitem__(self, key):
         if isinstance(key, int):
-            if key >= 0 and key < len(self.bits):
-                return self.bits[key] == "1"
+            if key >= 0 and key < len(self.aBits):
+                return self.aBits[key]
             else:
                 return False
         elif isinstance(key, slice):
-            bits = self.bits[key]
-            if bits:
-                return [b == "1" for b in bits]
-            else:
-                return []
+            return self.aBits[key]
 
-    def num_set(self):
-        return self.bits.count("1")
+    def countSet(self):
+        return self.aBits.count(True)
 
-    def num_cleared(self):
-        return self.bits.count("0")
+    def countUnset(self):
+        return self.aBits.count(False)
 
-    def value(self, start, stop):
-        bits = self.bits[start:stop]
-        if bits:
-            return int(bits, 2)
-        else:
-            return 0
+    def getIntValue(self, iStart : int, iStop : int) -> int:
+        aBits = self.aBits[iStart:iStop]
+        iValue = 0
+        if aBits:
+            iLen = len(aBits)
+            iRange = iLen if iLen < 32 else 32
+            for iBitIndex in range( iRange ):
+                if aBits[iBitIndex]:
+                    iValue &= ( 1 << (iLen - iRange) )
+        return iValue
 
     def __len__(self):
-        return len(self.bits)
+        return len(self.strBits)
 
     def __str__(self):
-        return self.bits
+        return self.strBits
 
     def __iter__(self):
-        return [b == "1" for b in self.bits].__iter__()
+        return [b == "1" for b in self.strBits].__iter__()
 
 
-def bytes_to_int(bs):
-    """ converts a big-endian byte array into a single integer """
-    v = 0
-    p = 0
-    for b in reversed(bs):
-        v += b * (2 ** p)
-        p += 8
-    return v
+def convertBEBytesToInt(baBytes : bytearray) -> int:
+    # Convert a big-endian byte array into a single integer
+    iValue = 0
+    iOffset = 0
+    for iByte in reversed(baBytes):
+        iValue += iByte * (2 ** iOffset)
+        iOffset += 8
+    return iValue
 
 
-def bytes_to_hex(bs):
-    h = ""
-    for b in bs:
-        bh = hex(b)[2:]
-        h += ("0" * (2 - len(bh))) + bh
-    return h
+def convertByteArrayToHexString(baMessage : bytearray):
+    strHex = ""
+    for iByte in baMessage:
+        strHexByte = hex(iByte)[2:]
+        strHex += ("0" * (2 - len(strHexByte))) + strHexByte
+    return strHex
 
 
-def twos_comp(val, num_bits):
-    """compute the 2's compliment of int value val"""
-    if ((val & (1 << (num_bits - 1))) != 0):
-        val = val - (1 << num_bits)
-    return val
+def calc2sCompliment(iValue, iBitCount):
+    # Calculate the 2's compliment an integer value
+    if ( ( iValue & ( 1 << (iBitCount - 1) ) ) != 0 ):
+        iValue = iValue - (1 << iBitCount)
+    return iValue
 
 
-def isHex(_hex):
-    return all([c in string.hexdigits for c in _hex])
+def isHex(strHex : str):
+    # Does a string represent a hex value?
+    return all( [strChar in string.hexdigits for strChar in strHex] )
 
 
-def contiguous(l, start, end):
-    """ checks that a list of integers are consequtive """
-    if not l:
-        return False
-    if l[0] != start:
-        return False
-    if l[-1] != end:
-        return False
 
-    # for consequtiveness, look at the integers in pairs
-    pairs = zip(l, l[1:])
-    if not all([p[0] + 1 == p[1] for p in pairs]):
-        return False
-
-    return True
-
-
-def try_port(portStr):
-    """returns boolean for port availability"""
+def isPortAvailable(strPort : str):
+    # Is a port available?
     try:
-        s = serial.Serial(portStr)
-        s.close()  # explicit close 'cause of delayed GC in java
+        serialPort = serial.Serial(strPort)
+        serialPort.close()  # ...explicit close
+        # Available...
         return True
-
     except serial.SerialException:
         pass
     except OSError as e:
-        if e.errno != errno.ENOENT:  # permit "no such file or directory" errors
+        # If NOT a No Entry (File or Directory) error...
+        if e.errno != errno.ENOENT:
+            # ...throw that error...
             raise e
-
+    # Otherwise, not available...
     return False
 
 
-def scan_serial():
-    """scan for available ports. return a list of serial names"""
-    available = []
+def scanSerialPorts():
+    # Scan for available serial ports
 
-    possible_ports = []
-
+    # Get all possible ports...
+    listPortsPossible : list[str]  = []
     if sys.platform.startswith('linux') or sys.platform.startswith('cygwin'):
-        possible_ports += glob.glob("/dev/rfcomm[0-9]*")
-        possible_ports += glob.glob("/dev/ttyUSB[0-9]*")
-
+        listPortsPossible += glob.glob("/dev/rfcomm[0-9]*")
+        listPortsPossible += glob.glob("/dev/ttyUSB[0-9]*")
     elif sys.platform.startswith('win'):
-        possible_ports += ["\\.\COM%d" % i for i in range(256)]
-
+        listPortsPossible += ["\\.\COM%d" % i for i in range(256)]
     elif sys.platform.startswith('darwin'):
-        exclude = [
+        listPortsExclude = [
             '/dev/tty.Bluetooth-Incoming-Port',
             '/dev/tty.Bluetooth-Modem'
         ]
-        possible_ports += [port for port in glob.glob('/dev/tty.*') if port not in exclude]
+        listPortsPossible += [port for port in glob.glob('/dev/tty.*') if port not in listPortsExclude]
+    #listPortsPossible += glob.glob('/dev/pts/[0-9]*') # for OBDSim?
 
-    # possible_ports += glob.glob('/dev/pts/[0-9]*') # for obdsim
+    listPortsAvailable : list[str] = []
+    for strPort in listPortsPossible:
+        if isPortAvailable(strPort):
+            listPortsAvailable.append(strPort)
 
-    for port in possible_ports:
-        if try_port(port):
-            available.append(port)
-
-    return available
+    return listPortsAvailable

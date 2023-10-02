@@ -30,8 +30,8 @@
 #
 ############################################################################
 
-from .protocols import ECU
-from .utils import scan_serial
+from .Protocols import ECU
+from .utils import scanSerialPorts
 
 from .OBD2Connector import OBD2Connector
 from .OBD2ConnectorAsync import OBD2ConnectorAsync

@@ -2,11 +2,14 @@
 #
 # Python Onboard Diagnostics II Advanced
 #
-# StatusTest.py
+# ECU.py
 #
 # Copyright 2021-2023 Keven L. Ates (atescomp@gmail.com)
 #
 # This file is part of the Onboard Diagnostics II Advanced (pyOBDA) system.
+#
+# This file was rewritten in part from the project "python-OBD" file
+#   "obd/protocols/protocol.py"
 #
 # pyOBDA is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,19 +27,19 @@
 ############################################################################
 
 
-class StatusTest():
-    def __init__(self, strName : str = "", bAvailable : bool = False, bComplete: bool = False):
-        self.strName = strName
-        self.bAvailable = bAvailable
-        self.bComplete = bComplete
+class ECU:
+    class HEADER:
+        # Values for the ECU headers
+        ENGINE = b'7E0'
 
-    def __str__(self):
-        strAvailable = "Available" if self.bAvailable else "Unavailable"
-        strComplete = "Complete" if self.bComplete else "Incomplete"
-        return "Test %s: %s, %s" % (self.strName, strAvailable, strComplete)
+    # Constant Flags
+    #       Used for marking and filtering messages
 
-    def isNull(self):
-        return (
-            self.strName is None or
-            self.strName is ""
-        )
+    ALL       = 0b11111111  # ...used by OBDCommands to accept messages from any ECU
+    ALL_KNOWN = 0b11111110  # ...used to ignore unknown ECUs
+
+    # ECU Mask Bits
+    #       Each ECU gets its own bit
+    UNKNOWN      = 0b00000001  # ...unknowns get their own bit since they need to be accepted by the ALL filter
+    ENGINE       = 0b00000010
+    TRANSMISSION = 0b00000100
