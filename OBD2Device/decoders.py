@@ -64,10 +64,10 @@ def noop(listMessages : list[Message]):
     return listMessages[0].baData
 
 
-# hex in, bitstring out
+# Hex in, BitArray out
 def pid(listMessages : list[Message]):
-    d = listMessages[0].baData[2:]
-    return BitArray(d)
+    baHex = listMessages[0].baData[2:]
+    return BitArray(baHex)
 
 
 # returns the raw strings from the ELM
@@ -293,14 +293,12 @@ def getStatus(listMessages : list[Message]):
     #  10000011 00000111 11111111 00000000
     #   [# DTC] X        [supprt] [-ready]
 
-    output = Status()
-    output.bMIL = bits[0]
-    output.iDTC = bits.getIntValue(1, 8)
-    output.strIgnitionType = Codes.IgnitionType[ int( bits[(8 + 4)] ) ]
+    status = Status()
+    status.setValues(bits[0], bits.getIntValue(1, 8), int( bits[(8 + 4)] ) )
 
     # Load the 3 Base Tests (Component, Fuel, Misfire)...
     for iIndex, strName in enumerate( Codes.Test.Base[::-1] ):
-        output.addTest( StatusTest( strName, bits[(8 + 5) + iIndex], not bits[(8 + 1) + iIndex] ) )
+        status.addTest( StatusTest( strName, bits[(8 + 5) + iIndex], not bits[(8 + 1) + iIndex] ) )
 
     enumIgnition = None
     # If Compression Ignition...
@@ -313,9 +311,9 @@ def getStatus(listMessages : list[Message]):
         enumIgnition = enumerate(Codes.Test.Spark[::-1])
     # Load the Ignition Tests...
     for iIndex, strName in enumIgnition:
-        output.addTest( StatusTest( strName, bits[(8 * 2) + iIndex], not bits[(8 * 3) + iIndex] ) )
+        status.addTest( StatusTest( strName, bits[(8 * 2) + iIndex], not bits[(8 * 3) + iIndex] ) )
 
-    return output
+    return status
 
 
 def getFuelStatus(listMessages : list[Message]):

@@ -117,7 +117,7 @@ class OBD2ConnectorAsync(OBD2Connector):
         self.stop()
         super(OBD2ConnectorAsync, self).close()
 
-    def watch(self, c, callback=None, force=False):
+    def watch(self, cmd, callback=None, force=False):
         # Subscribe the given command for continuous updating
         #
         # Once subscribed, query() will return that command's latest value.
@@ -128,20 +128,20 @@ class OBD2ConnectorAsync(OBD2Connector):
             logger.warning("Can't watch() while running, please use stop()")
         # Otherwise...
         else:
-            if not force and not self.isCmdUsable(c):
+            if not force and not self.isCmdUsable(cmd, False):
                 # self.test_cmd() will print warnings
                 return
 
             # Create new command being watched, store the command...
-            if c not in self.__dictCommands:
-                logger.info("Watching command: %s" % str(c))
-                self.__dictCommands[c] = Response()  # ...give it an initial value
-                self.__dictCallbacks[c] = []  # ...create an empty list
+            if cmd not in self.__dictCommands:
+                logger.info("Watching command: %s" % str(cmd))
+                self.__dictCommands[cmd] = Response()  # ...give it an initial value
+                self.__dictCallbacks[cmd] = []  # ...create an empty list
 
             # If a callback was given, push it...
-            if hasattr(callback, "__call__") and (callback not in self.__dictCallbacks[c]):
-                logger.info("subscribing callback for command: %s" % str(c))
-                self.__dictCallbacks[c].append(callback)
+            if hasattr(callback, "__call__") and (callback not in self.__dictCallbacks[cmd]):
+                logger.info("subscribing callback for command: %s" % str(cmd))
+                self.__dictCallbacks[cmd].append(callback)
 
     def unwatch(self, c, callback=None):
         # Unsubscribes a specific command (and optionally, a specific callback) from being updated

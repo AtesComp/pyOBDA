@@ -31,8 +31,10 @@ import time
 
 from EventDebug import EventDebug
 from SensorManager import SensorManager
+from Sensor import Sensor
 from OBD2Device.CommandList import CommandList
 from OBD2Device.Response import Response
+from OBD2Device.Status import Status
 
 class OBD2Port :
     # OBDPort abstracts all communication with OBD-II devices...
@@ -48,7 +50,7 @@ class OBD2Port :
         self.Connected = False
 
         self.app = app
-        wx.PostEvent(self.app, EventDebug([1, "Opening interface (serial port)"]))
+        wx.PostEvent( self.app, EventDebug( [1, "Opening interface (serial port)"] ) )
 
         self.cmds = CommandList()
 
@@ -133,115 +135,35 @@ class OBD2Port :
             wx.PostEvent(self.app, EventDebug([3, "ERROR: No port!"]))
         return response
 
-    # Return string of sensor name and value from sensor index...
+
+    # Return tabular sensor response from a sensor index of the current sensor page...
     def getSensorInfo(self, iSensorIndex):
         # Returns 3-tuple of given sensors. 3-tuple consists of
-        # ( Sensor Name (string), Sensor Value (string), Sensor Unit (string) )...
-        sensor = SensorManager.SENSORS[self.app.iCurrSensorsPage][iSensorIndex]
+        # ( Sensor Table Descriptor (string), Sensor Response (Response), Sensor Unit (string) )...
+        sensor : Sensor = SensorManager.SENSORS[self.app.iCurrSensorsPage][iSensorIndex]
         response = self.__processCommand(sensor.cmd)
-        return (sensor.name, response, sensor.unit)
+        return (sensor.strTableDesc, response, sensor.strUnit)
 
-    # Return string of sensor name and value from sensor index...
+    # Return tabular sensor response from a sensor group and index...
     def getSensorInfo(self, iSensorGroup, iSensorIndex):
         # Returns 3-tuple of given sensors. 3-tuple consists of
-        # ( Sensor Name (string), Sensor Value (string), Sensor Unit (string) )...
-        sensor = SensorManager.SENSORS[iSensorGroup][iSensorIndex]
+        # ( Sensor Table Descriptor (string), Sensor Response (Response), Sensor Unit (string) )...
+        sensor : Sensor = SensorManager.SENSORS[iSensorGroup][iSensorIndex]
         response = self.__processCommand(sensor.cmd)
-        return (sensor.name, response, sensor.unit)
+        return (sensor.strTableDesc, response, sensor.strUnit)
 
-    def __getSensorNames(self):
-        # Internal use only: not a public interface...
-        names = []
-        for sensor in SensorManager.SENSORS[self.app.iCurrSensorsPage]:
-            names.append(sensor.name)
-        return names
 
-    def getStatusTests(self):
-        statusTrans = []  # ...translate values to text
-        statusText = ["Unavailable", "Available: Incomplete", "Available: Complete"]
-
+    def getStatusTests(self) -> list[str]:
         statusRes = self.getSensorInfo(0, 1)[1]  # ...Status Since Clear DTC
         if ( statusRes.isNull() ) :
             # NOTE: Event message already from getSensorInfo()
-            return statusTrans
+            return []
 
-        #
         # Process Status Items...
-        #
+        status : Status = statusRes.value
+        self.app.setTestIgnition(status.iIgnitionType)
+        return status.listText()
 
-        # DTC Count...
-        statusTrans.append( str( statusRes.value.DTC_count ) )
-
-        # MIL...
-        if statusRes.value.MIL :
-            statusTrans.append("On")
-        else :
-            statusTrans.append("Off")
-
-        # Ignition Type...
-        statusTrans.append( statusRes.value.ignition_type )
-
-        iStatus = 1 if statusRes.value.MISFIRE_MONITORING.available else 0
-        iStatus += 1 if statusRes.value.MISFIRE_MONITORING.complete else 0
-        statusTrans.append( statusText[ iStatus ] )
-
-        iStatus = 1 if statusRes.value.FUEL_SYSTEM_MONITORING.available else 0
-        iStatus += 1 if statusRes.value.FUEL_SYSTEM_MONITORING.complete else 0
-        statusTrans.append( statusText[ iStatus ] )
-
-        iStatus = 1 if statusRes.value.COMPONENT_MONITORING.available else 0
-        iStatus += 1 if statusRes.value.COMPONENT_MONITORING.complete else 0
-        statusTrans.append( statusText[ iStatus ] )
-
-        iStatus = 1 if statusRes.value.CATALYST_MONITORING.available else 0
-        iStatus += 1 if statusRes.value.CATALYST_MONITORING.complete else 0
-        statusTrans.append( statusText[ iStatus ] )
-
-        iStatus = 1 if statusRes.value.HEATED_CATALYST_MONITORING.available else 0
-        iStatus += 1 if statusRes.value.HEATED_CATALYST_MONITORING.complete else 0
-        statusTrans.append( statusText[ iStatus ] )
-
-        iStatus = 1 if statusRes.value.EVAPORATIVE_SYSTEM_MONITORING.available else 0
-        iStatus += 1 if statusRes.value.EVAPORATIVE_SYSTEM_MONITORING.complete else 0
-        statusTrans.append( statusText[ iStatus ] )
-
-        iStatus = 1 if statusRes.value.SECONDARY_AIR_SYSTEM_MONITORING.available else 0
-        iStatus += 1 if statusRes.value.SECONDARY_AIR_SYSTEM_MONITORING.complete else 0
-        statusTrans.append( statusText[ iStatus ] )
-
-        iStatus = 1 if statusRes.value.OXYGEN_SENSOR_MONITORING.available else 0
-        iStatus += 1 if statusRes.value.OXYGEN_SENSOR_MONITORING.complete else 0
-        statusTrans.append( statusText[ iStatus ] )
-
-        iStatus = 1 if statusRes.value.OXYGEN_SENSOR_HEATER_MONITORING.available else 0
-        iStatus += 1 if statusRes.value.OXYGEN_SENSOR_HEATER_MONITORING.complete else 0
-        statusTrans.append( statusText[ iStatus ] )
-
-        iStatus = 1 if statusRes.value.EGR_VVT_SYSTEM_MONITORING.available else 0
-        iStatus += 1 if statusRes.value.EGR_VVT_SYSTEM_MONITORING.complete else 0
-        statusTrans.append( statusText[ iStatus ] )
-
-        iStatus = 1 if statusRes.value.NMHC_CATALYST_MONITORING.available else 0
-        iStatus += 1 if statusRes.value.NMHC_CATALYST_MONITORING.complete else 0
-        statusTrans.append( statusText[ iStatus ] )
-
-        iStatus = 1 if statusRes.value.NOX_SCR_AFTERTREATMENT_MONITORING.available else 0
-        iStatus += 1 if statusRes.value.NOX_SCR_AFTERTREATMENT_MONITORING.complete else 0
-        statusTrans.append( statusText[ iStatus ] )
-
-        iStatus = 1 if statusRes.value.BOOST_PRESSURE_MONITORING.available else 0
-        iStatus += 1 if statusRes.value.BOOST_PRESSURE_MONITORING.complete else 0
-        statusTrans.append( statusText[ iStatus ] )
-
-        iStatus = 1 if statusRes.value.EXHAUST_GAS_SENSOR_MONITORING.available else 0
-        iStatus += 1 if statusRes.value.EXHAUST_GAS_SENSOR_MONITORING.complete else 0
-        statusTrans.append( statusText[ iStatus ] )
-
-        iStatus = 1 if statusRes.value.PM_FILTER_MONITORING.available else 0
-        iStatus += 1 if statusRes.value.PM_FILTER_MONITORING.complete else 0
-        statusTrans.append( statusText[ iStatus ] )
-
-        return statusTrans
 
     def getDTC(self):
         # Returns a list of all pending DTC codes. Each element consists of
@@ -253,10 +175,11 @@ class OBD2Port :
             # NOTE: Event message already from getSensorInfo()
             return listDTCCodes
 
+        status : Status = statusRes.value
         wx.PostEvent(self.app, EventDebug([1, ":::Status:::"]))
-        wx.PostEvent(self.app, EventDebug([1, "     MIL: " + str(statusRes.value.MIL)]))
-        wx.PostEvent(self.app, EventDebug([1, "   DTC #: " + str(statusRes.value.DTC_count)]))
-        wx.PostEvent(self.app, EventDebug([1, "Ignition: " + str(statusRes.value.ignition_type)]))
+        wx.PostEvent(self.app, EventDebug([1, "     MIL: " + str(status.bMIL)]))
+        wx.PostEvent(self.app, EventDebug([1, "   DTC #: " + str(status.iDTC)]))
+        wx.PostEvent(self.app, EventDebug([1, "Ignition: " + status.getIgnitionText()]))
 
         # Get all DTC...
         response = self.__processCommand(self.cmds.GET_DTC)
@@ -264,7 +187,7 @@ class OBD2Port :
             wx.PostEvent(self.app, EventDebug([1, "GET_DTC not supported!"]))
         else :
             iDTCCount = len(response.value)
-            if iDTCCount != statusRes.value.DTC_count :
+            if iDTCCount != status.iDTC :
                 wx.PostEvent(self.app, EventDebug([2, "WARNING: Status DTC count does not match actual DTC count!"]))
             if (iDTCCount > 0) :
                 for DTCCode in response.value :

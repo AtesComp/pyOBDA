@@ -70,7 +70,7 @@ class CommandList(object):
         Command("SPEED"                         , "Vehicle Speed"                                       , b"010D",     3, uas(0x09)         , ECU.ENGINE, True ),
         Command("TIMING_ADVANCE"                , "Timing Advance"                                      , b"010E",     3, timingAdvance     , ECU.ENGINE, True ),
         Command("INTAKE_TEMP"                   , "Intake Air Temp"                                     , b"010F",     3, temperature       , ECU.ENGINE, True ),
-        Command("MAF"                           , "Air Flow Rate (MAF)"                                 , b"0110",     4, uas(0x27)         , ECU.ENGINE, True ),
+        Command("MAF"                           , "Mass Air Flow Rate (MAF)"                            , b"0110",     4, uas(0x27)         , ECU.ENGINE, True ),
         Command("THROTTLE_POS"                  , "Throttle Position"                                   , b"0111",     3, percent           , ECU.ENGINE, True ),
         Command("AIR_STATUS"                    , "Secondary Air Status"                                , b"0112",     3, getAirStatus      , ECU.ENGINE, True ),
         Command("O2_SENSORS"                    , "O2 Sensors Present"                                  , b"0113",     3, getO2Sensors      , ECU.ENGINE, True ),
@@ -158,14 +158,14 @@ class CommandList(object):
 
     # Mode 2 is the same as Mode 1, but returns the Freeze Frame values for the Powertrain Diagnostic Data at the time the frame was set
     MODE_2 : list[Command] = []
-    for c in MODE_1:
-        c = c.clone()
-        c.bsCmdID = b"02" + c.bsCmdID[2:]  # ...change the Mode: 0100 --> 0200
-        c.strName = "FF_" + c.strName
-        c.strDesc = "FF " + c.strDesc
-        if c.funcDecode == pid:
-            c.funcDecode = drop  # ...never send Mode 2 PID requests--use Mode 1 instead
-        MODE_2.append(c)
+    for cmd in MODE_1:
+        cmd = cmd.clone()
+        cmd.bsCmdID = b"02" + cmd.bsCmdID[2:]  # ...change the Mode: 0100 --> 0200
+        cmd.strName = "FF_" + cmd.strName
+        cmd.strDesc = "FF " + cmd.strDesc
+        if cmd.funcDecoder == pid:
+            cmd.funcDecoder = drop  # ...never send Mode 2 PID requests--use Mode 1 instead
+        MODE_2.append(cmd)
 
     # Mode 3 contains a single command to get the Diagnostic Trouble Code (DTC) list
     MODE_3 : list[Command] = [
@@ -426,7 +426,7 @@ class CommandList(object):
         for listMode in self.modes:
             listPIDCommands += [
                 command for command in listMode if (
-                    command and type(command) == Command and command.funcDecode == pid
+                    command and type(command) == Command and command.funcDecoder == pid
                 )
             ]
         return listPIDCommands

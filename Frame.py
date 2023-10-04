@@ -96,6 +96,7 @@ class Frame(wx.Frame):
         # Build Notebook Pages...
         # --------------------
         self.BuildStatusPage()
+        self.iIgnitionType = -1
         self.BuildTestsPage()
         self.BuildSensorPage()
         self.BuildDTCPage()
@@ -245,8 +246,33 @@ class Frame(wx.Frame):
 
         self.notebook.AddPage(self.panelTests, "Tests")
 
-        for codeTest in Codes.CodeTest :  # ...fill test descriptions...
-            self.listctrlTests.Append([codeTest, "---"])
+        # Fill known test entries...
+        for strTest in Codes.Test.PrimaryCode:
+            self.listctrlTests.Append([strTest, "---"])
+        self.listctrlTests.Append(["", ""])
+        for strTest in Codes.Test.BaseCode:
+            self.listctrlTests.Append([strTest, "---"])
+        self.listctrlTests.Append(["", ""])
+        self.iIgnitionType = 0
+        for strTest in Codes.Test.SparkCode:
+            self.listctrlTests.Append([strTest, "---"])
+
+    def setTestIgnition(self, iIgnitionType):
+        if iIgnitionType != self.iIgnitionType:
+            # Remove existing...
+            iEnd = self.listctrlTests.GetItemCount()
+            if iEnd > 8:
+                for iIndex in range(8, iEnd):
+                    self.listctrlTests.DeleteItem(iIndex)
+            # Set...
+            self.iIgnitionType = iIgnitionType
+            # Append new...
+            if iIgnitionType == 0:
+                for strTest in Codes.Test.SparkCode:
+                    self.listctrlTests.Append([strTest, "---"])
+            else:
+                for strTest in Codes.Test.CompressionCode:
+                    self.listctrlTests.Append([strTest, "---"])
 
     def BuildSensorPage(self):
         wx.PostEvent(self, EventDebug([2, "Build Sensor Page"]))
@@ -273,11 +299,12 @@ class Frame(wx.Frame):
                 self.listctrlSensors[iSensorGroup].SetSize(0, 0, w, h - 58)
         ####################################################################
 
-        strlistSensors= [ "A", "B", "C" ]
-        self.panelSensors = [None] * 3
-        self.idSensors = [None] * 3
-        self.listctrlSensors = [None] * 3
-        for iSensorGroup in range(3) :
+        iSensorListLen = len(SensorManager.SENSORS)
+        strlistSensors = [ str( chr(65 + iIndex) ) for iIndex in range(iSensorListLen) ]
+        self.panelSensors = [None] * iSensorListLen
+        self.idSensors = [None] * iSensorListLen
+        self.listctrlSensors = [None] * iSensorListLen
+        for iSensorGroup in range( iSensorListLen ) :
             self.panelSensors[iSensorGroup] = wx.Panel(self.notebookSensors, wx.ID_ANY)
             self.idSensors[iSensorGroup] = wx.NewIdRef(count=1)
             #self.listctrlSensors[iSensorGroup] = ListCtrl(self.panelSensors[iSensorGroup], self.idSensors[iSensorGroup], pos=posSensors, style=styleSensors)
@@ -289,7 +316,7 @@ class Frame(wx.Frame):
             self.listctrlSensors[iSensorGroup].InsertColumn(1, "Sensor", format=wx.LIST_FORMAT_RIGHT, width=250)
             self.listctrlSensors[iSensorGroup].InsertColumn(2, "Value")
             for sensor in SensorManager.SENSORS[iSensorGroup] :
-                self.listctrlSensors[iSensorGroup].Append([AppSettings.CHAR_QMARK, sensor.name, ""])
+                self.listctrlSensors[iSensorGroup].Append([AppSettings.CHAR_QMARK, sensor.strTableDesc, ""])
             self.listctrlSensors[iSensorGroup].Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnToggleSensor, id=self.idSensors[iSensorGroup])
 
             self.panelSensors[iSensorGroup].Bind(wx.EVT_SIZE, OnPanelResize)

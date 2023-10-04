@@ -33,9 +33,9 @@ logger = logging.getLogger(__name__)
 
 class Status:
     def __init__(self):
-        self.bMIL = False
-        self.iDTC = 0
-        self.strIgnitionType = ""
+        self.bMIL : bool = False
+        self.iDTC : int = 0
+        self.iIgnitionType :int = None
         self._testsByName : dict[str, StatusTest] = {}
 
         # make sure each test is available by name
@@ -46,9 +46,53 @@ class Status:
             if strName:  # filter out None/reserved tests
                 self._testsByName[strName] = testNull
 
+    def setValues(self, bMIL:bool, iDTC:int, iIgnitionType:int):
+        self.bMIL = bMIL
+        self.iDTC = iDTC
+        self.iIgnitionType = iIgnitionType
+
     def addTest(self, test : StatusTest):
         if test.strName is not None:
             self._testsByName[test.strName] = test
+
+    def listText(self) -> list[str]:
+        statusText = ["Unavailable", "Available: Incomplete", "Available: Complete"]
+        listStr = []
+
+        # Primary...
+        listStr.append( str( self.iDTC ) )
+        listStr.append( "On" if self.bMIL else "Off" )
+        listStr.append( Codes.IgnitionType[self.iIgnitionType] )
+        listStr.append("") # ...spacer
+
+        # Base...
+        for strName in Codes.Test.Base:
+            if strName:  # ....filter out missing tests
+                iStatus = 1 if self._testsByName[strName].bAvailable else 0
+                iStatus += 1 if self._testsByName[strName].bComplete else 0
+                listStr.append( statusText[ iStatus ] )
+        listStr.append("") # ...spacer
+
+        if self.iIgnitionType == 0:
+            # Spark...
+            for strName in Codes.Test.Spark:
+                if strName:  # ...filter out missing tests
+                    iStatus = 1 if self._testsByName[strName].bAvailable else 0
+                    iStatus += 1 if self._testsByName[strName].bComplete else 0
+                    listStr.append( statusText[ iStatus ] )
+        else:
+            # Compression...
+            for strName in Codes.Test.Compression:
+                if strName:  # ...filter out missing tests
+                    iStatus = 1 if self._testsByName[strName].bAvailable else 0
+                    iStatus += 1 if self._testsByName[strName].bComplete else 0
+                    listStr.append( statusText[ iStatus ] )
+
+    def getIgnitionText(self):
+        return Codes.IgnitionType[self.iIgnitionType]
+
+    def getTest(self):
+        return self._testsByName
 
     @property
     def tests(self) -> list[StatusTest]:
@@ -56,7 +100,7 @@ class Status:
 
     def __str__(self):
         if len(self.tests) > 0:
-            return "\n".join([str(t) for t in self.tests])
+            return "\n".join([str(test) for test in self.tests])
         else:
             return "Status: No tests to report."
 

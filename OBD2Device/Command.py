@@ -55,7 +55,7 @@ class Command:
         self.strDesc     = strDesc     # ...human readable description
         self.bsCmdID     = bsCmdID     # ...bytes Command ID string
         self.iBytes      = iBytes      # ...byte count expected in response messages
-        self.funcDecode  = funcDecoder # ...decoding function to use for response messages
+        self.funcDecoder = funcDecoder # ...decoding function to use for response messages
         self.iECU        = iECU        # ...expected ECU ID that generates response messages
         self.bFast       = bFast       # ...boolean indicating if an extra "return early" end-of-command value can be added
         self.bsHeader    = bsHeader    # ...bytes ECU Header used in requests
@@ -65,7 +65,7 @@ class Command:
                         self.strDesc,
                         self.bsCmdID,
                         self.iBytes,
-                        self.funcDecode,
+                        self.funcDecoder,
                         self.iECU,
                         self.bFast,
                         self.bsHeader)
@@ -88,39 +88,39 @@ class Command:
 
     def __call__(self, messages:list[Message]) -> Response:
         # Filter applicable messages from the right ECU(s)...
-        messages = [ m for m in messages if (self.iECU & m.iECU) > 0 ]
+        messages = [ message for message in messages if (self.iECU & message.iECU) > 0 ]
 
         # Guarantee data size for the decoder...
-        for m in messages:
-            self.__constrain_message_data(m)
+        for message in messages:
+            self.__constrainMessageData(message)
 
         # Create the response object with the raw data received and reference to original command
         response = Response(self, messages)
         if messages:
-            response.value = self.funcDecode(messages)
+            response.value = self.funcDecoder(messages)
         else:
             logger.info(str(self) + " did not receive any acceptable messages")
 
         return response
 
-    def __constrain_message_data(self, message):
+    def __constrainMessageData(self, message:Message):
         # Sizes the data field to the command's specified size...
-        len_msg_data = len(message.data)
+        iMsgDataLen = len(message.baData)
         if self.iBytes > 0:
-            if len_msg_data > self.iBytes:
+            if iMsgDataLen > self.iBytes:
                 # Trim the right side...
-                message.data = message.data[:self.iBytes]
+                message.baData = message.baData[:self.iBytes]
                 logger.debug(
                     "Message was longer than expected (%s>%s). " +
-                    "Trimmed message: %s", len_msg_data, self.iBytes,
-                    repr(message.data))
-            elif len_msg_data < self.iBytes:
+                    "Trimmed message: %s", iMsgDataLen, self.iBytes,
+                    repr(message.baData))
+            elif iMsgDataLen < self.iBytes:
                 # Pad the right with zeros...
-                message.data += (b'\x00' * (self.iBytes - len_msg_data))
+                message.baData += (b'\x00' * (self.iBytes - iMsgDataLen))
                 logger.debug(
                     "Message was shorter than expected (%s<%s). " +
-                    "Padded message: %s", len_msg_data, self.iBytes,
-                    repr(message.data))
+                    "Padded message: %s", iMsgDataLen, self.iBytes,
+                    repr(message.baData))
 
     def __str__(self):
         if self.bsHeader != ECU.HEADER.ENGINE:
@@ -128,24 +128,25 @@ class Command:
         return "%s: %s" % (self.bsCmdID, self.strDesc)
 
     def __repr__(self):
-        e = self.iECU
+        strECU = "ECU.UNKNOWN"
         if self.iECU == ECU.ALL:
-            e = "ECU.ALL"
-        if self.iECU == ECU.ENGINE:
-            e = "ECU.ENGINE"
-        if self.iECU == ECU.TRANSMISSION:
-            e = "ECU.TRANSMISSION"
+            strECU = "ECU.ALL"
+        elif self.iECU == ECU.ENGINE:
+            strECU = "ECU.ENGINE"
+        elif self.iECU == ECU.TRANSMISSION:
+            strECU = "ECU.TRANSMISSION"
+
         if self.bsHeader == ECU.HEADER.ENGINE:
-            return ("Command(%s, %s, %s, %s, raw_string, ecu=%s, fast=%s)"
+            return ("Command(%s, %s, %s, %d, raw_string, ecu=%s, fast=%s)"
                     ) % (repr(self.strName), repr(self.strDesc), repr(self.bsCmdID),
-                         self.iBytes, e, self.bFast)
+                         self.iBytes, strECU, self.bFast)
         return ("Command" +
-                "(%s, %s, %s, %s, raw_string, ecu=%s, fast=%s, header=%s)"
+                "(%s, %s, %s, %d, raw_string, ecu=%s, fast=%s, header=%s)"
                 ) % (repr(self.strName), repr(self.strDesc), repr(self.bsCmdID),
-                     self.iBytes, e, self.bFast, repr(self.bsHeader))
+                     self.iBytes, strECU, self.bFast, repr(self.bsHeader))
 
     def __hash__(self):
-        # needed for using commands as keys in a dict (see async.py)
+        # Hash command as key for a dict...
         return hash(self.bsHeader + self.bsCmdID)
 
     def __eq__(self, other):

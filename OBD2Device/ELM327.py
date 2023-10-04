@@ -716,7 +716,7 @@ class ELM327:
         strLogV = ""
         for iIndex in range( len(astrLines) ):
             for iChar in range ( len( astrLines[iIndex] ) ):
-                ch = astrLines[iIndex][iChar]
+                ch = ord( astrLines[iIndex][iChar] )
                 strLogC += ( chr(ch) if (ch > 31 and ch != 127) else '_' )
                 strLogV += hex(ch)[2:].upper().zfill(2) + ' '
         logger.debug(" After: " + strLogC)

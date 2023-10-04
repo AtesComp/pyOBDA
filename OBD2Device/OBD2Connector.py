@@ -112,7 +112,7 @@ class OBD2Connector(object):
         for cmdPID in cmdsPID :
             # NOTE: PID listing commands should sequentially become supported.
             #       Mode 1 PID 0 is assumed to always be supported.
-            if not self.isCmdUsable(cmdPID, bWarn=False) :
+            if not self.isCmdUsable(cmdPID) :
                 continue
 
             # NOTE: When querying, only use the blocking OBD2Connector.query().
@@ -228,12 +228,11 @@ class OBD2Connector(object):
             print(str(cmd))
 
     def isCmdSupported(self, cmd):
-        # Return a boolean for whether the given command is supported by the vehicle
-
+        # Is the given command supported by the vehicle?
         return cmd in self.listCommandsSupported
 
     def isCmdUsable(self, cmd, bWarn=True):
-        # Return a boolean for whether a command will be sent without using force=True.
+        # Is a command usable without using force=True.
 
         # Test if the command is supported...
         if not self.isCmdSupported(cmd) :
@@ -257,9 +256,9 @@ class OBD2Connector(object):
             logger.warning("Unconnected: No connection available!")
             return respNull
 
-        # if the user forces, skip all checks
-        if not bForce and not self.isCmdUsable(cmd) :
-            return respNull
+        # If the user is NOT forcing the command and the command is not usable...
+        if not bForce and not self.isCmdUsable(cmd, False) :
+            return respNull # ...nothing to do
 
         self.__setHeader(cmd.bsHeader)
 
@@ -283,14 +282,14 @@ class OBD2Connector(object):
 
         return cmd(messages)  # ...compute a response object
 
-    def __buildCmdString(self, cmd):
+    def __buildCmdString(self, cmd:Command):
         # Assembles the appropriate command string
-        bytesCmd = cmd.command
+        bytesCmd = cmd.bsCmdID
 
         # If we know the number of frames that this command returns,
         # only wait for exactly that number. This avoids some harsh
         # timeouts from the ELM, thus speeding up queries.
-        if self.bFast and cmd.fast and (cmd in self.__dictFrameCounts) :
+        if self.bFast and cmd.bFast and (cmd in self.__dictFrameCounts) :
             bytesCmd += str(self.__dictFrameCounts[cmd]).encode()
 
         # If we sent the command last time, just send a CR...

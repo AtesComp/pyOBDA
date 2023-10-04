@@ -49,9 +49,9 @@ class BitArray:
     """
 
     def __init__(self, baValue : bytearray):
-        iLen = len(baValue) * 8
-        self.aBits = [ False for iIndex in range(iLen) ]
-        for iByteIndex in range(iLen):
+        iByteLen = len(baValue)
+        self.aBits = [ False for iIndex in range(iByteLen * 8) ]
+        for iByteIndex in range(iByteLen):
             for iBitIndex in reversed( range(8) ):
                 self.aBits[iByteIndex * 8 + iBitIndex] = baValue[iByteIndex] & (1 << iBitIndex )
 
@@ -82,13 +82,13 @@ class BitArray:
         return iValue
 
     def __len__(self):
-        return len(self.strBits)
+        return len(self.aBits)
 
     def __str__(self):
-        return self.strBits
+        return "".join( ["1" if bBit else "0" for bBit in self.aBits] )
 
     def __iter__(self):
-        return [b == "1" for b in self.strBits].__iter__()
+        return [bBit == True for bBit in self.aBits].__iter__()
 
 
 def convertBEBytesToInt(baBytes : bytearray) -> int:

@@ -79,8 +79,9 @@ class SensorProducer(threading.Thread):
                 if statePrev != stateCurr :
                     wx.PostEvent( self.controls, EventDebug([2, "Test Page..."] ) )
                 results = self.connection.PORT.getStatusTests()
-                for iIndex in range(0, len(results)):
-                    wx.PostEvent( self.controls, EventTest( [ iIndex, 1, results[iIndex] ] ) )
+                if results:
+                    for iIndex in range(0, len(results)):
+                        wx.PostEvent( self.controls, EventTest( [ iIndex, 1, results[iIndex] ] ) )
 
             elif stateCurr == 2:  # ...Sensor Page
                 if statePrev != stateCurr :
@@ -131,7 +132,7 @@ class SensorProducer(threading.Thread):
             else: # ...everything else
                 if statePrev != stateCurr :
                     wx.PostEvent( self.controls, EventDebug( [2, "ERROR Page..."] ) )
-                # We should never see this message
+                    # We should never see this message
 
             if self.controls.ThreadControl == -1:  # ...end thread
                 break

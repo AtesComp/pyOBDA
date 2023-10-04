@@ -24,7 +24,7 @@
 ############################################################################
 
 class Sensor:
-    def __init__(self, strSensorName, strSensorCommand, strSensorUnit):
-        self.name = strSensorName
-        self.cmd = strSensorCommand
-        self.unit = strSensorUnit
+    def __init__(self, strSensorTableDesc, cmd, strSensorUnit):
+        self.strTableDesc = strSensorTableDesc
+        self.cmd = cmd
+        self.strUnit = strSensorUnit
