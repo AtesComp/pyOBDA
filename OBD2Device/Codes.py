@@ -89,7 +89,9 @@ class Codes:
         CompressionCode = [
             "NMHC Catalyst:",
             "NOx Scr AfterTreatment:",
+            "",
             "Boost Pressure:",
+            "",
             "Exhaust Gas Sensor:",
             "PM Filter:",
             "EGR VVT:",

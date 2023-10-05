@@ -34,6 +34,7 @@ class SensorManager:
     SENSOR_GROUP_B = 2
     SENSOR_GROUP_C = 3
 
+    # NOTE: See https://en.wikipedia.org/wiki/OBD-II_PIDs
     SENSORS = [
     #
     # PID_A Commands...
@@ -128,7 +129,7 @@ class SensorManager:
         Sensor(" Comnded Throttle Actuator", CMDS.THROTTLE_ACTUATOR, "%"),              # 4C  percent
         Sensor("          Time with MIL ON", CMDS.RUN_TIME_MIL, "sec"),                 # 4D  sec, min
         Sensor("    Time Since DTC Cleared", CMDS.TIME_SINCE_DTC_CLEARED, "sec"),       # 4E  sec, min
-        #Sensor("               Unsupported", CMDS.UNSUPPORTED, ""),                     # 4F  unknown
+        Sensor("     4 Systems: Max Values", CMDS.MAX_VALUES_4, ""),                    # 4F  ratio, V, mA, kPa
         Sensor("  Mass Air Flow: Max Value", CMDS.MAX_MAF, "gps"),                      # 50  gps (grams/sec), lb/min
         Sensor("                 Fuel Type", CMDS.FUEL_TYPE, ""),                       # 51  str
         Sensor("      Ethanol Fuel Percent", CMDS.ETHANOL_PERCENT, "%"),                # 52  percent
@@ -144,7 +145,7 @@ class SensorManager:
         Sensor("    Engine Oil Temperature", CMDS.OIL_TEMP, "degC"),                    # 5C  degC, degF
         Sensor("     Fuel Injection Timing", CMDS.FUEL_INJECT_TIMING, "degree"),        # 5D  degree
         Sensor("          Engine Fuel Rate", CMDS.FUEL_RATE, "lph"),                    # 5E  liters/hour, gallons/hour
-        #Sensor("               Unsupported", CMDS.UNSUPPORTED, ""),                     # 5F  unknown
+        Sensor("     Vehicle Emission Reqs", CMDS.EMISSION_REQ, ""),                    # 5F  unknown, Bit Encoded
     ]
     #
     # ...END SENSORS

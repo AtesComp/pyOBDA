@@ -55,7 +55,7 @@ def <name>(<list_of_messages>):
 
 
 # drop all messages, return None
-def drop(_):
+def drop(listMessages : list[Message]):
     return None
 
 
@@ -84,10 +84,10 @@ Unit/Scaling in that table, simply to avoid redundant code.
 
 def uas(id_):
     """ get the corresponding decoder for this UAS ID """
-    return functools.partial(decode_uas, id_=id_)
+    return functools.partial(decodeUAS, id_=id_)
 
 
-def decode_uas(listMessages : list[Message], iID):
+def decodeUAS(listMessages : list[Message], iID):
     baMessage = listMessages[0].baData[2:]  # chop off mode and PID bytes
     return UAS_IDS[iID](baMessage)
 
@@ -206,7 +206,7 @@ def timingInject(listMessages : list[Message]):
 
 
 # 0 to 2550 grams/sec
-def max_maf(listMessages : list[Message]):
+def maxMAF(listMessages : list[Message]):
     baMessage = listMessages[0].baData[2:]
     iMaxMAF = baMessage[0]
     iMaxMAF = iMaxMAF * 10

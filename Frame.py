@@ -62,6 +62,8 @@ class Frame(wx.Frame):
         #  -1: Disconnect from vehicle's ECU
         self.ThreadControl = 0  # ...thread management, do nothing
         self.SensorProd = None
+        self.iIgnitionIndex = 0
+        self.iIgnitionType = -1
 
         # ====================
         # Setup Configuration
@@ -96,7 +98,6 @@ class Frame(wx.Frame):
         # Build Notebook Pages...
         # --------------------
         self.BuildStatusPage()
-        self.iIgnitionType = -1
         self.BuildTestsPage()
         self.BuildSensorPage()
         self.BuildDTCPage()
@@ -253,8 +254,9 @@ class Frame(wx.Frame):
         for strTest in Codes.Test.BaseCode:
             self.listctrlTests.Append([strTest, "---"])
         self.listctrlTests.Append(["", ""])
+        self.iIgnitionIndex = self.listctrlTests.GetItemCount()
         self.iIgnitionType = 0
-        for strTest in Codes.Test.SparkCode:
+        for strTest in Codes.Test.SparkCode: # ...default vs CompressionCode
             self.listctrlTests.Append([strTest, "---"])
 
     def setTestIgnition(self, iIgnitionType):

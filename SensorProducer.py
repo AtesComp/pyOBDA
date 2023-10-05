@@ -92,17 +92,17 @@ class SensorProducer(threading.Thread):
 
                 for iIndex in range(iStartSensors, len(self.active[self.controls.iCurrSensorsPage])):
                     if self.active[self.controls.iCurrSensorsPage][iIndex]:
-                        sensor = self.connection.PORT.getSensorInfo(self.controls.iCurrSensorsPage, iIndex)
-                        response = [self.controls.iCurrSensorsPage, iIndex, 2, "%s (%s)" % (sensor[1], sensor[2])]
-                        wx.PostEvent( self.controls, EventResult(response) )
+                        tupSensInfo = self.connection.PORT.getSensorInfo(self.controls.iCurrSensorsPage, iIndex)
+                        listResponse = [self.controls.iCurrSensorsPage, iIndex, 2, "%s (%s)" % (tupSensInfo[1], tupSensInfo[2])]
+                        wx.PostEvent( self.controls, EventResult(listResponse) )
 
             elif stateCurr == 3:  # ...DTC Page
                 if statePrev != stateCurr :
                     wx.PostEvent( self.controls, EventDebug( [2, "DTC Page..."] ) )
 
                 if self.controls.ThreadControl == 1:  # ...Clear DTC...
-                    response = self.connection.PORT.clearDTC()
-                    # Response is N/A for CLEAR_DTC
+                    listResponse = self.connection.PORT.clearDTC()
+                    # Response is N/A for CLEAR_DTC...no need to process
 
                     # Before resetting ThreadControl, check for a disconnect
                     if self.controls.ThreadControl == -1:
@@ -111,13 +111,13 @@ class SensorProducer(threading.Thread):
 
                 if self.controls.ThreadControl == 2:  # ...Get DTC...
                     wx.PostEvent( self.controls, EventDTC(0) )  # ...clear list
-                    codesDTC = self.connection.PORT.getDTC()
-                    if len(codesDTC) == 0:
-                        response = ["", "", "No DTC Codes (all clear)"]
-                        wx.PostEvent( self.controls, EventDTC(response) )
-                    for iIndex in range(0, len(codesDTC)):
-                        response = [ codesDTC[iIndex][1], codesDTC[iIndex][0], Codes.Codes[ codesDTC[iIndex][1] ] ]
-                        wx.PostEvent( self.controls, EventDTC(response) )
+                    listCodesDTC = self.connection.PORT.getDTC()
+                    if len(listCodesDTC) == 0:
+                        listResponse = ["", "", "No DTC Codes (all clear)"]
+                        wx.PostEvent( self.controls, EventDTC(listResponse) )
+                    for iIndex in range(0, len(listCodesDTC)):
+                        listResponse = [ listCodesDTC[iIndex][1], listCodesDTC[iIndex][0], Codes.Codes[ listCodesDTC[iIndex][1] ] ]
+                        wx.PostEvent( self.controls, EventDTC(listResponse) )
 
                     # Before resetting ThreadControl, check for a disconnect
                     if self.controls.ThreadControl == -1:  # ...disconnect

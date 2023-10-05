@@ -50,6 +50,8 @@ class CommandList(object):
     #   The commands MUST be in PID order--one command per PID--to allow for fast lookup using MODE_#[pid] lookup format
     #   See Command.py for the descriptions and purposes for each of these fields
 
+    # NOTE: See https://en.wikipedia.org/wiki/OBD-II_PIDs
+
     # Mode 1 returns current Powertrain Diagnostic Data values
     #       Mode 1 is divided into three PID sections: A, B, and C.
     MODE_1 : list[Command] = [
@@ -137,17 +139,17 @@ class CommandList(object):
         Command("THROTTLE_ACTUATOR"             , "Commanded throttle actuator"                         , b"014C",     3, percent           , ECU.ENGINE, True ),
         Command("RUN_TIME_MIL"                  , "Time run with MIL on"                                , b"014D",     4, uas(0x34)         , ECU.ENGINE, True ),
         Command("TIME_SINCE_DTC_CLEARED"        , "Time since trouble codes cleared"                    , b"014E",     4, uas(0x34)         , ECU.ENGINE, True ),
-        Command("MAX_VALUES"                    , "Various Max values"                                  , b"014F",     6, drop              , ECU.ENGINE, True ), # TODO: decode this
-        Command("MAX_MAF"                       , "Maximum value for mass air flow sensor"              , b"0150",     6, max_maf           , ECU.ENGINE, True ),
+        Command("MAX_VALUES_4"                  , "Max Vals: FuelAirEqRatio, O2V&A, In.Man.AbsPressure" , b"014F",     6, drop              , ECU.ENGINE, True ), # TODO: decode this
+        Command("MAX_MAF"                       , "Maximum value for Mass Air Flow sensor"              , b"0150",     6, maxMAF            , ECU.ENGINE, True ),
         Command("FUEL_TYPE"                     , "Fuel Type"                                           , b"0151",     3, getFuelType       , ECU.ENGINE, True ),
-        Command("ETHANOL_PERCENT"               , "Ethanol Fuel Percent"                                , b"0152",     3, percent           , ECU.ENGINE, True ),
-        Command("EVAP_VAPOR_PRESSURE_ABS"       , "Absolute Evap system Vapor Pressure"                 , b"0153",     4, pressureEvapAbs   , ECU.ENGINE, True ),
+        Command("ETHANOL_PERCENT"               , "Ethanol Fuel percent"                                , b"0152",     3, percent           , ECU.ENGINE, True ),
+        Command("EVAP_VAPOR_PRESSURE_ABS"       , "Evap system absolute vapor pressure"                 , b"0153",     4, pressureEvapAbs   , ECU.ENGINE, True ),
         Command("EVAP_VAPOR_PRESSURE_ALT"       , "Evap system vapor pressure"                          , b"0154",     4, pressureEvapAlt   , ECU.ENGINE, True ),
         Command("SHORT_O2_TRIM_B1"              , "Short term secondary O2 trim - Bank 1"               , b"0155",     4, percentCentered   , ECU.ENGINE, True ), # TODO: decode seconds value for banks 3 and 4
         Command("LONG_O2_TRIM_B1"               , "Long term secondary O2 trim - Bank 1"                , b"0156",     4, percentCentered   , ECU.ENGINE, True ),
         Command("SHORT_O2_TRIM_B2"              , "Short term secondary O2 trim - Bank 2"               , b"0157",     4, percentCentered   , ECU.ENGINE, True ),
         Command("LONG_O2_TRIM_B2"               , "Long term secondary O2 trim - Bank 2"                , b"0158",     4, percentCentered   , ECU.ENGINE, True ),
-        Command("FUEL_RAIL_PRESSURE_ABS"        , "Fuel rail pressure (absolute)"                       , b"0159",     4, uas(0x1B)         , ECU.ENGINE, True ),
+        Command("FUEL_RAIL_PRESSURE_ABS"        , "Fuel rail absolute pressure"                         , b"0159",     4, uas(0x1B)         , ECU.ENGINE, True ),
         Command("RELATIVE_ACCEL_POS"            , "Relative accelerator pedal position"                 , b"015A",     3, percent           , ECU.ENGINE, True ),
         Command("HYBRID_BATTERY_REMAINING"      , "Hybrid battery pack remaining life"                  , b"015B",     3, percent           , ECU.ENGINE, True ),
         Command("OIL_TEMP"                      , "Engine oil temperature"                              , b"015C",     3, temperature       , ECU.ENGINE, True ),

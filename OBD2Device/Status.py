@@ -62,7 +62,7 @@ class Status:
         # Primary...
         listStr.append( str( self.iDTC ) )
         listStr.append( "On" if self.bMIL else "Off" )
-        listStr.append( Codes.IgnitionType[self.iIgnitionType] )
+        listStr.append( self.getIgnitionText() )
         listStr.append("") # ...spacer
 
         # Base...

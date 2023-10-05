@@ -137,9 +137,31 @@ class ELM327:
     #
     # Bad CAN Messages
     #
-    _BAD_CAN_MSGS = [
-        "UNABLE TO CONNECT",
-        "CAN ERROR",
+    _ELM_BAD_MSGS = [
+        "ACT ALERT",            # ...a warning that there has been no RS232 or OBD activity for some time
+        "BUFFER FULL",          # ...the buffer may fill at a faster rate than it is being emptied
+        "BUS BUSY",             # ...too much bus activity OR wiring problem
+        "BUS ERROR",            # ...a generic problem
+        "CAN ERROR",            # ...difficulty initializing, sending, or receiving
+        "DATA ERROR",           # ...a response from the vehicle was detected, but the information was
+                                #       incorrect or could not be recovered
+        "<DATA ERROR",          # ...data error in line shown
+        "ERRxx",                # ...xx == digits, internal ELM error
+        "ERR94",                # ...a fatal CAN error
+        "FB ERROR",             # ...signal feedback error
+        "LP ALERT",             # ...the ELM327 is about to switch to the Low Power state
+        "!LP ALERT",
+        "LV RESET",             # ...if the voltage should go below the low limit, a 'brownout reset' circuit
+                                #       is activated and the IC stops all activity--when the voltage returns
+                                #       to normal, the ELM327 performs a full reset, and then prints this
+                                #       message
+        "NO DATA",              # ...the IC waited for a period of time and detected no response from the
+                                #       vehicle
+        "<RX ERROR",            # ...an error was detected in the received CAN data
+        "STOPPED",              # ...an OBD operation was interrupted by a received RS232 character or by a
+                                #       low level on the RTS pin
+        "UNABLE TO CONNECT",    # ...the ELM327 has tried all of the available protocols and could not detect
+                                #       a compatible one OR the ignition key is not on
     ]
 
     def __init__(self, strPortName:str, iBaudRate:int, strProtocol:str, fTimeout:float,
@@ -316,11 +338,11 @@ class ELM327:
             return False
 
         r0100 = self.__send(b"0100", delay=1)
-        if self.__hasMessage(r0100, ELM327._BAD_CAN_MSGS):
+        if self.__hasErrorMessage(r0100):
             logger.error("1: Protocol Query (0100) FAILED: Unable to connect!")
             # Try again...
             r0100 = self.__send(b"0100", delay=1)
-            if self.__hasMessage(r0100, ELM327._BAD_CAN_MSGS):
+            if self.__hasErrorMessage(r0100):
                 logger.error("2: Protocol Query (0100) FAILED: Unable to connect!")
                 self.__error("Set Selected Protocol FAILED! Use OBD-II->Configure to selected another or set to Auto Select.")
                 return False
@@ -347,11 +369,11 @@ class ELM327:
         # Command: 0100 (first command, SEARCH protocols)
         #
         r0100 = self.__send(b"0100", delay=1)
-        if self.__hasMessage(r0100, ELM327._BAD_CAN_MSGS):
+        if self.__hasErrorMessage(r0100):
             logger.error("1: Protocol Query (0100) FAILED: Unable to connect!")
             # Try again...
             r0100 = self.__send(b"0100", delay=1)
-            if self.__hasMessage(r0100, ELM327._BAD_CAN_MSGS):
+            if self.__hasErrorMessage(r0100):
                 logger.error("2: Protocol Query (0100) FAILED: Unable to connect!")
                 return False
 
@@ -383,10 +405,10 @@ class ELM327:
 
                 r = self.__send(b"AT TP" + strProtoNo.encode())
                 r0100 = self.__send(b"0100", delay=1)
-                if self.__hasMessage(r0100, ELM327._BAD_CAN_MSGS):
+                if self.__hasErrorMessage(r0100):
                     # Try again...
                     r0100 = self.__send(b"0100", delay=1)
-                    if self.__hasMessage(r0100, ELM327._BAD_CAN_MSGS):
+                    if self.__hasErrorMessage(r0100):
                         continue
 
                 # Otherwise, successfully found the protocol...
@@ -466,13 +488,13 @@ class ELM327:
         if expectEcho:
             # Allow the adapter to already have echo disabled by searching all lines...
             # NOTE: No need to test for the echo.
-            return self.__hasMessage(lines, ["OK"])
+            return self.__hasErrorMessage(lines, ["OK"])
         else: # ...no echo, just search the first line for OK...
             return len(lines) > 0 and lines[0] == "OK"
 
-    def __hasMessage(self, lines, msgs:list[str]):
+    def __hasErrorMessage(self, lines):
         for line in lines:
-            for msg in msgs:
+            for msg in self._ELM_BAD_MSGS:
                 if msg in line:
                     return True
         return False
@@ -685,7 +707,7 @@ class ELM327:
             logger.info( "Port Read: Found bytes: " + str( len(baBuffer) ) )
 
             # End on the specified End Marker sequence...
-            if ELM327.ELM_PROMPT.encode() in baBuffer:
+            if self.ELM_PROMPT.encode() in baBuffer:
                 break
 
         # Check buffer...
