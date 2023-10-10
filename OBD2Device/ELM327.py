@@ -146,8 +146,6 @@ class ELM327:
         "DATA ERROR",           # ...a response from the vehicle was detected, but the information was
                                 #       incorrect or could not be recovered
         "<DATA ERROR",          # ...data error in line shown
-        "ERRxx",                # ...xx == digits, internal ELM error
-        "ERR94",                # ...a fatal CAN error
         "FB ERROR",             # ...signal feedback error
         "LP ALERT",             # ...the ELM327 is about to switch to the Low Power state
         "!LP ALERT",
@@ -162,6 +160,8 @@ class ELM327:
                                 #       low level on the RTS pin
         "UNABLE TO CONNECT",    # ...the ELM327 has tried all of the available protocols and could not detect
                                 #       a compatible one OR the ignition key is not on
+        "ERR94",                # ...a fatal CAN error
+        "ERR",                  # ...All other errors: ERRxx == digits, internal ELM error
     ]
 
     def __init__(self, strPortName:str, iBaudRate:int, strProtocol:str, fTimeout:float,
@@ -221,9 +221,9 @@ class ELM327:
         # Command: ATZ (Reset)
         #
         try:
-            r = self.__send(b"AT Z", delay=1)  # ...wait 1 second for ELM to initialize
-            if len(r) > 1:
-                logger.debug("Response: " + r[1] )
+            results = self.__send(b"AT Z", delay=1)  # ...wait 1 second for ELM to initialize
+            if len(results) > 1:
+                logger.debug("Response: " + results[1] )
 
             # Ignore return data as it can be junk bits
         except serial.SerialException as err:
@@ -233,47 +233,47 @@ class ELM327:
         #
         # Command: AT E0 (Echo OFF)
         #
-        r = self.__send(b"AT E0")
-        if not self.__isOK(r, expectEcho=True):
+        results = self.__send(b"AT E0")
+        if not self.__isOK(results, expectEcho=True):
             self.__error("AT E0 (Echo OFF) did not return 'OK'!")
             return
-        logger.debug("Response: " + r[0] )
+        logger.debug("Response: " + results[0] )
 
         #
         # Command: AT H1 (Headers ON)
         #
-        r = self.__send(b"AT H1")
-        if not self.__isOK(r):
+        results = self.__send(b"AT H1")
+        if not self.__isOK(results):
             self.__error("AT H1 (Headers ON) did not return 'OK'!")
             return
-        logger.debug("Response: " + r[0] )
+        logger.debug("Response: " + results[0] )
 
         #
         # Command: AT L0 (Linefeeds OFF)
         #
-        r = self.__send(b"AT L0")
-        if not self.__isOK(r):
+        results = self.__send(b"AT L0")
+        if not self.__isOK(results):
             self.__error("AT L0 (Linefeeds OFF) did not return 'OK'!")
             return
-        logger.debug("Response: " + r[0] )
+        logger.debug("Response: " + results[0] )
 
         #
         # Command: AT @1 (Device Description)
         #
-        r = self.__send(b"AT @1")
-        if len(r) == 0 or r[0] == '':
+        results = self.__send(b"AT @1")
+        if len(results) == 0 or results[0] == '':
             self.__error("AT @1 (Device Description) did not respond!")
             return
-        logger.debug("Response: " + r[0] )
+        logger.debug("Response: " + results[0] )
 
         #
         # Command: AT @2 (Device Identified)
         #
-        r = self.__send(b"AT @2")
-        if len(r) == 0 or r[0] == '':
+        results = self.__send(b"AT @2")
+        if len(results) == 0 or results[0] == '':
             self.__error("AT @1 (Device Identified) did not respond!")
             return
-        logger.debug("Response: " + r[0] )
+        logger.debug("Response: " + results[0] )
 
         # Communication with the ELM at this point is successful...
         self.__strStatus = ConnectionStatus.ELM
@@ -282,12 +282,12 @@ class ELM327:
         # Command: AT RV (ELM Volts)
         #
         if bCheckVoltage:
-            r = self.__send(b"AT RV")
-            if len(r) == 0 or r[0] == '':
+            results = self.__send(b"AT RV")
+            if len(results) == 0 or results[0] == '':
                 self.__error("AT RV (ELM Volts) did not respond!")
                 return
             try:
-                if float(r[0].lower().replace('v', '')) < 6.0:
+                if float(results[0].lower().replace('v', '')) < 6.0:
                     self.__error("AT RV (ELM Volts) too low ( < 6.0 )!")
                     return
             except ValueError as err:
@@ -483,14 +483,20 @@ class ELM327:
         return False
 
     def __isOK(self, lines, expectEcho=False):
+        strOK = "OK"
         if not lines:
             return False
         if expectEcho:
             # Allow the adapter to already have echo disabled by searching all lines...
             # NOTE: No need to test for the echo.
-            return self.__hasErrorMessage(lines, ["OK"])
+            if self.__hasErrorMessage(lines):
+                return False
+            for line in lines:
+                if line == strOK:
+                    return True
+            return False
         else: # ...no echo, just search the first line for OK...
-            return len(lines) > 0 and lines[0] == "OK"
+            return len(lines) > 0 and lines[0] == strOK
 
     def __hasErrorMessage(self, lines):
         for line in lines:
@@ -604,15 +610,19 @@ class ELM327:
         if self.__bLowPower == True:
             self.setToNormalPower()
 
-        lines = self.__send(cmd)
-        # If the prompt ends the last line, remove it...
-        if len(lines) > 0 and lines[-1].endswith( self.ELM_PROMPT ):
-            lines[-1] = lines[-1][:-1]
-        # If the last line is now empty, remove it...
-        if len(lines[-1]) == 0:
-            lines = lines[:-1]
+        astrLines = self.__send(cmd)
 
-        messages = self.__objProtocol(lines)
+        #
+        # Clean up the last line...
+        #
+        # If the prompt ends the last line, remove it...
+        if len(astrLines) > 0 and astrLines[-1].endswith( self.ELM_PROMPT ):
+            astrLines[-1] = astrLines[-1][:-1]
+        # If the last line is now empty, remove it...
+        if len(astrLines[-1]) == 0:
+            astrLines = astrLines[:-1]
+
+        messages = self.__objProtocol(astrLines)
         return messages
 
     def __send(self, cmd, delay = None):
@@ -631,14 +641,14 @@ class ELM327:
             time.sleep(delay)
             delayed += delay
 
-        r = self.__read()
-        while delayed < 1.0 and len(r) <= 0:
+        astrLines = self.__read()
+        while delayed < 1.0 and len(astrLines) <= 0:
             d = 0.1
             logger.debug("No response...wait: %f seconds" % d)
             time.sleep(d)
             delayed += 1.0 # d
-            r = self.__read()
-        return r
+            astrLines = self.__read()
+        return astrLines
 
     def __write(self, cmd):
         # A "low-level" function to write a string to the port
@@ -730,8 +740,8 @@ class ELM327:
         # Convert the bytearray into a string...
         strBuffer = baBuffer.decode("ascii", "ignore")
 
-        # Split the string into lines--remove blank lines and trailing spaces...
-        astrLines = [ strLine.strip() for strLine in re.split("[\r\n]", strBuffer) if bool(strLine) ]
+        # Split the string into lines--remove blank lines, end marker line, and trailing spaces...
+        astrLines = [ strLine.strip() for strLine in re.split("[\r\n]", strBuffer) if bool(strLine)]
 
         # Log...
         strLogC = ""

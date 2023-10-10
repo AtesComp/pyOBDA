@@ -408,7 +408,7 @@ def parseDTCCode(baBytes : bytearray):
     return ( strDTCCode, Codes.Codes.get(strDTCCode, "") )
 
 
-def getDTC(listMessages : list[Message]):
+def getDTCSingle(listMessages : list[Message]):
     # Convert a response message into a DTC code
     baMessage = listMessages[0].baData[2:]
     return parseDTCCode(baMessage)
@@ -426,8 +426,9 @@ def getDTCList(listMessages : list[Message]):
         # Parse the byte pair code...
         tupDTC = parseDTCCode((listBAMessage[iIndex - 1], listBAMessage[iIndex]))
 
-        if tupDTC is not None:
-            listCodes.append(tupDTC)
+        if tupDTC is None: # ...when None, not enough bytes or (0, 0)
+            break
+        listCodes.append(tupDTC)
 
     return listCodes
 

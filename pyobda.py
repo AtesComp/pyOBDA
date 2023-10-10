@@ -27,7 +27,7 @@
 import wx
 
 import AppSettings
-from Frame import Frame
+from UIFrame import UIFrame
 
 #
 # The pyOBDA App
@@ -38,7 +38,7 @@ class OBDA_App(wx.App):
         # Setup Main Frame
         # ====================
 
-        frame = Frame("OBD-II Advanced v" + AppSettings.VERSION)
+        frame = UIFrame("OBD-II Advanced v" + AppSettings.VERSION)
         self.SetTopWindow(frame)
         frame.Center();
         frame.Show(True)

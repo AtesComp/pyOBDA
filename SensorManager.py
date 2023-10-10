@@ -129,7 +129,7 @@ class SensorManager:
         Sensor(" Comnded Throttle Actuator", CMDS.THROTTLE_ACTUATOR, "%"),              # 4C  percent
         Sensor("          Time with MIL ON", CMDS.RUN_TIME_MIL, "sec"),                 # 4D  sec, min
         Sensor("    Time Since DTC Cleared", CMDS.TIME_SINCE_DTC_CLEARED, "sec"),       # 4E  sec, min
-        Sensor("     4 Systems: Max Values", CMDS.MAX_VALUES_4, ""),                    # 4F  ratio, V, mA, kPa
+        Sensor("     4 Systems: Max Values", CMDS.MAX_VALUES_4, ""),                    # 4F  bytes: ratio, V, mA, kPa
         Sensor("  Mass Air Flow: Max Value", CMDS.MAX_MAF, "gps"),                      # 50  gps (grams/sec), lb/min
         Sensor("                 Fuel Type", CMDS.FUEL_TYPE, ""),                       # 51  str
         Sensor("      Ethanol Fuel Percent", CMDS.ETHANOL_PERCENT, "%"),                # 52  percent
@@ -151,3 +151,4 @@ class SensorManager:
     # ...END SENSORS
     #
     ]
+

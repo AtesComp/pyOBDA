@@ -24,11 +24,14 @@
 ############################################################################
 
 import wx
+from typing import Callable
 import OBD2Device
 
 #import string # ...for logSensor()
 import time
 
+from Connection import Connection
+from EventHandler import EventHandler
 from EventDebug import EventDebug
 from SensorManager import SensorManager
 from Sensor import Sensor
@@ -43,14 +46,17 @@ class OBD2Port :
     def getPorts(cls) :
         return OBD2Device.scanSerialPorts()
 
-    def __init__(self, app, connection): # app is a Frame object, connection is a Connection object
-        self.ELMver = "none"
-        self.ELMvolts = "none"
+    def __init__(self, connection: Connection, events: EventHandler, funcGetSensorPage: Callable, funcSetTestIgnition: Callable):
+        self.strELMver = "none"
+        self.strELMvolts = "none"
         # Connected state for OBD connection is false (disconnected) & true (connected)
-        self.Connected = False
+        self.bConnected = False
 
-        self.app = app
-        wx.PostEvent( self.app, EventDebug( [1, "Opening interface (serial port)"] ) )
+        self.events = events
+        self.getSensorPage = funcGetSensorPage
+        self.setTestIgnition = funcSetTestIgnition
+
+        wx.PostEvent( self.events, EventDebug( [1, "Opening interface (serial port)"] ) )
 
         self.cmds = CommandList()
 
@@ -67,72 +73,69 @@ class OBD2Port :
         time.sleep(1) # ...wait for it...
 
         if (self.port != None):
-            wx.PostEvent(self.app, EventDebug([1, "Interface: " + self.port.getPortName()]))
-            wx.PostEvent(self.app, EventDebug([1, " Protocol: [" + self.port.getProtocolID() + "] " + self.port.getProtocolName()]))
-            wx.PostEvent(self.app, EventDebug([1, "   Status: " + self.port.status()]))
+            wx.PostEvent(self.events, EventDebug([1, "Interface: " + self.port.getPortName()]))
+            wx.PostEvent(self.events, EventDebug([1, " Protocol: [" + self.port.getProtocolID() + "] " + self.port.getProtocolName()]))
+            wx.PostEvent(self.events, EventDebug([1, "   Status: " + self.port.status()]))
 
         if (self.port == None) or (not self.port.isConnected()) :
-            wx.PostEvent(self.app, EventDebug([1, "ERROR: Cannot connect to interface"]))
+            wx.PostEvent(self.events, EventDebug([1, "ERROR: Cannot connect to interface"]))
             return
 
-        self.Connected = True
-        wx.PostEvent(self.app, EventDebug([1, "Successfully opened interface"]))
-        wx.PostEvent(self.app, EventDebug([1, "Connecting to ECU..." ]))
+        self.bConnected = True
+        wx.PostEvent(self.events, EventDebug([1, "Successfully opened interface"]))
+        wx.PostEvent(self.events, EventDebug([1, "Connecting to ECU..." ]))
 
         response = self.port.query(self.cmds.ELM_VERSION)
         if ( not response.isNull() ) :
-            self.ELMver = str(response.value)
-        wx.PostEvent(self.app, EventDebug([2, "ELM_VERSION response:" + self.ELMver]))
+            self.strELMver = str(response.value)
+        wx.PostEvent(self.events, EventDebug([2, "ELM_VERSION response:" + self.strELMver]))
 
         response = self.port.query(self.cmds.ELM_VOLTAGE)
         if ( not response.isNull() ) :
-            self.ELMvolts = str(response.value)
-        wx.PostEvent(self.app, EventDebug([2, "ELM_VOLTS response:" + self.ELMvolts]))
+            self.strELMvolts = str(response.value)
+        wx.PostEvent(self.events, EventDebug([2, "ELM_VOLTS response:" + self.strELMvolts]))
 
         count = 1
         while True:  # ...loop until connection or exhausted attempts...
-            wx.PostEvent( self.app, EventDebug( [2, "Connection attempt:" + str(count) ] ) )
+            wx.PostEvent( self.events, EventDebug( [2, "Connection attempt:" + str(count) ] ) )
             response = self.port.query(self.cmds.PIDS_A)
 
             if ( response.isNull() ) :
-                wx.PostEvent( self.app, EventDebug( [2, "Connection attempt failed!" ] ) )
+                wx.PostEvent( self.events, EventDebug( [2, "Connection attempt failed!" ] ) )
                 time.sleep(5)
                 if (count >= connection.RECONNECTS):
                     self.close()
-                    wx.PostEvent( self.app, EventDebug( [2, "Connection attempts exhausted!" ] ) )
+                    wx.PostEvent( self.events, EventDebug( [2, "Connection attempts exhausted!" ] ) )
                     break
                 count += 1
                 continue
 
             self.PIDS_A = str(response.value)
-            wx.PostEvent(
-                self.app,
-                EventDebug( [ 2, "PIDS_A response:" + self.PIDS_A ] )
-            )
+            wx.PostEvent( self.events, EventDebug( [ 2, "PIDS_A response:" + self.PIDS_A ] ) )
             break
 
     def close(self):
         # Resets device and closes all associated file handles...
 
-        if (self.port and self.port != None) and self.Connected == True:
+        if (self.port and self.port != None) and self.bConnected == True:
             response = self.port.query(self.cmds.ELM_VERSION) # atz
             self.port.close()
 
         self.port = None
-        self.Connected = False
+        self.bConnected = False
 
     def __processCommand(self, command):
         # Internal use only: not a public interface...
         response = Response()
         if self.port :
-            wx.PostEvent(self.app, EventDebug([3, "Command: " + str(command)]))
+            wx.PostEvent(self.events, EventDebug([3, "Command: " + str(command)]))
             response = self.port.query(command)
             if ( response.isNull() ) :
-                wx.PostEvent(self.app, EventDebug([3, "WARNING: No data!"]))
+                wx.PostEvent(self.events, EventDebug([3, "WARNING: No data!"]))
             else :
-                wx.PostEvent(self.app, EventDebug([3, "Results: " + str(response.value)]))
+                wx.PostEvent(self.events, EventDebug([3, "Results: " + str(response.value)]))
         else :
-            wx.PostEvent(self.app, EventDebug([3, "ERROR: No port!"]))
+            wx.PostEvent(self.events, EventDebug([3, "ERROR: No port!"]))
         return response
 
 
@@ -140,7 +143,7 @@ class OBD2Port :
     def getSensorInfo(self, iSensorIndex):
         # Returns 3-tuple of given sensors. 3-tuple consists of
         # ( Sensor Table Descriptor (string), Sensor Response (Response), Sensor Unit (string) )...
-        sensor : Sensor = SensorManager.SENSORS[self.app.iCurrSensorsPage][iSensorIndex]
+        sensor : Sensor = SensorManager.SENSORS[ self.getSensorPage() ][iSensorIndex]
         response = self.__processCommand(sensor.cmd)
         return (sensor.strTableDesc, response, sensor.strUnit)
 
@@ -161,7 +164,7 @@ class OBD2Port :
 
         # Process Status Items...
         status : Status = statusRes.value
-        self.app.setTestIgnition(status.iIgnitionType)
+        self.setTestIgnition(status.iIgnitionType)
         return status.listText()
 
 
@@ -176,19 +179,19 @@ class OBD2Port :
             return listDTCCodes
 
         status : Status = statusRes.value
-        wx.PostEvent(self.app, EventDebug([1, ":::Status:::"]))
-        wx.PostEvent(self.app, EventDebug([1, "     MIL: " + str(status.bMIL)]))
-        wx.PostEvent(self.app, EventDebug([1, "   DTC #: " + str(status.iDTC)]))
-        wx.PostEvent(self.app, EventDebug([1, "Ignition: " + status.getIgnitionText()]))
+        wx.PostEvent( self.events, EventDebug([1, ":::Status:::"]) )
+        wx.PostEvent( self.events, EventDebug([1, "     MIL: " + str(status.bMIL)]) )
+        wx.PostEvent( self.events, EventDebug([1, "   DTC #: " + str(status.iDTC)]) )
+        wx.PostEvent( self.events, EventDebug([1, "Ignition: " + status.getIgnitionText()]) )
 
         # Get all DTC...
         response = self.__processCommand(self.cmds.GET_DTC)
         if ( response.isNull() ) :
-            wx.PostEvent(self.app, EventDebug([1, "GET_DTC not supported!"]))
+            wx.PostEvent(self.events, EventDebug([1, "GET_DTC not supported!"]))
         else :
             iDTCCount = len(response.value)
             if iDTCCount != status.iDTC :
-                wx.PostEvent(self.app, EventDebug([2, "WARNING: Status DTC count does not match actual DTC count!"]))
+                wx.PostEvent(self.events, EventDebug([2, "WARNING: Status DTC count does not match actual DTC count!"]))
             if (iDTCCount > 0) :
                 for DTCCode in response.value :
                     listDTCCodes.append(["Active", DTCCode[0]])
@@ -196,7 +199,7 @@ class OBD2Port :
         # Get current DTC...
         response = self.__processCommand(self.cmds.GET_CURRENT_DTC)
         if ( response.isNull() ) :
-             wx.PostEvent(self.app, EventDebug([1, "GET_CURRENT_DTC not supported!"]))
+             wx.PostEvent(self.events, EventDebug([1, "GET_CURRENT_DTC not supported!"]))
         else :
             if (len(response.value) > 0) :
                 for DTCCode in response.value :

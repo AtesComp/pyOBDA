@@ -110,8 +110,8 @@ class LegacyProtocol(Protocol):
         #       since CAN is the standard. As this is legacy, fix inconsistencies
         #       for the legacy protocol here.
 
-        # If a GET_DTC request...
-        if iMode == 0x43:
+        # If a GET_DTC or GET_CURRENT_DTC request...
+        if iMode == 0x43 or iMode == 0x47:
             # GET_DTC requests return frames with no PID or Order bytes
             # Accumulate all of the data, minus the Mode bytes, in each frame
 
@@ -171,7 +171,7 @@ class LegacyProtocol(Protocol):
 
                 # Add the data from the remaining frames...
                 for frame in frames[1:]:
-                    message.baData += frame.baData[3:]  # ...skip the Mode PID and Order bytes
+                    message.baData += frame.baData[3:]  # ...skip the Mode, PID, and Order bytes
 
         return True
 

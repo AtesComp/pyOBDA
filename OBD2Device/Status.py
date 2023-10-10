@@ -58,21 +58,25 @@ class Status:
     def listText(self) -> list[str]:
         statusText = ["Unavailable", "Available: Incomplete", "Available: Complete"]
         listStr = []
+        listStr.append(None) # ...spacer
 
-        # Primary...
+        # System...
         listStr.append( str( self.iDTC ) )
         listStr.append( "On" if self.bMIL else "Off" )
         listStr.append( self.getIgnitionText() )
-        listStr.append("") # ...spacer
 
-        # Base...
+        listStr.append(None) # ...spacer
+
+        # Basic...
         for strName in Codes.Test.Base:
             if strName:  # ....filter out missing tests
                 iStatus = 1 if self._testsByName[strName].bAvailable else 0
                 iStatus += 1 if self._testsByName[strName].bComplete else 0
                 listStr.append( statusText[ iStatus ] )
-        listStr.append("") # ...spacer
 
+        listStr.append(None) # ...spacer
+
+        # Ignition...
         if self.iIgnitionType == 0:
             # Spark...
             for strName in Codes.Test.Spark:

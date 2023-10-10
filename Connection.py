@@ -25,7 +25,6 @@
 
 import AppSettings
 import OBD2Device
-from OBD2Port import OBD2Port
 
 
 # A simple Connection class to hold connection values...
@@ -38,7 +37,6 @@ class Connection():
 
     def setConnection(self, connect) :
         self.PORTNAME:str = Connection.strPortNameDefault
-        self.PORT:(OBD2Port|None) = None
         self.BAUD:int = 115200
         self.PROTOCOL:str = "6"
         self.FAST:bool = True
@@ -49,7 +47,6 @@ class Connection():
         OBD2Device.setLogging()
         if connect != None :
             self.PORTNAME = connect.PORTNAME
-            self.PORT = connect.PORT
             self.BAUD = connect.BAUD
             self.PROTOCOL = connect.PROTOCOL
             self.FAST = connect.FAST
@@ -59,7 +56,6 @@ class Connection():
 
     def resetConnection(self):
         self.PORTNAME = Connection.strPortNameDefault
-        self.PORT = None
         self.BAUD = 115200
         self.PROTOCOL = "6"
         self.FAST = True

@@ -38,7 +38,7 @@ class Codes:
     # Test Codes
 
     class Test:
-        PrimaryCode = [
+        SystemCode = [
             "DTCs:",
             "MIL:",
             "Ignition:",

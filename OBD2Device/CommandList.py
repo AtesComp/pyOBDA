@@ -58,7 +58,7 @@ class CommandList(object):
         #        Name                              Description                                              CmdID  Bytes  Decoder             ECU         Fast
         Command("PIDS_A"                        , "Supported PIDs [01-20]"                              , b"0100",     6, pid               , ECU.ENGINE, True ),
         Command("STATUS"                        , "Status since DTCs cleared"                           , b"0101",     6, getStatus         , ECU.ENGINE, True ),
-        Command("FREEZE_DTC"                    , "DTC that triggered the freeze frame"                 , b"0102",     4, getDTC            , ECU.ENGINE, True ),
+        Command("FREEZE_DTC"                    , "DTC that triggered the freeze frame"                 , b"0102",     4, getDTCSingle      , ECU.ENGINE, True ),
         Command("FUEL_STATUS"                   , "Fuel System Status"                                  , b"0103",     4, getFuelStatus     , ECU.ENGINE, True ),
         Command("ENGINE_LOAD"                   , "Calculated Engine Load"                              , b"0104",     3, percent           , ECU.ENGINE, True ),
         Command("COOLANT_TEMP"                  , "Engine Coolant Temperature"                          , b"0105",     3, temperature       , ECU.ENGINE, True ),
@@ -189,11 +189,12 @@ class CommandList(object):
     # Mode 5 is the Oxygen Sensor Monitoring Test results
     #       This information is not available on vehicles using the Controller Area Network (CAN) system.
     #       For CAN systems, use Mode 6.
+    MODE_5 : list[Command] = []
 
     # Mode 6 is the On-board Monitoring Test results for specific monitored systems
     #       Mode 6 documents the PID as MID (Monitor ID).
     #       These are CAN only commands.
-    MODE_6 : list[Command|None] = [
+    MODE_6 : list[Command] = [
         #        Name                              Description                                              CmdID  Bytes  Decoder             ECU          Fast
         Command("MIDS_A"                        , "Supported MIDs [01-20]"                              , b"0600",     0, pid               , ECU.ALL,     False),
         Command("MONITOR_O2_B1S1"               , "O2 Sensor Monitor Bank 1 - Sensor 1"                 , b"0601",     0, getMonitor        , ECU.ALL,     False),
@@ -304,6 +305,7 @@ class CommandList(object):
 
     # Mode 8 allows the bidirectional control of an On-board system, test or component.
     #       Typically, control limited to some evaporative emissions systems and allows the user to seal the system for leak testing.
+    MODE_8 : list[Command] = []
 
     # Mode 9 gets the Vehicle Information
     #       This allows access to the Vehicle Identification Number (VIN) and Calibration Verification Numbers (CVN) from all emissions-related electronic modules.
@@ -330,6 +332,7 @@ class CommandList(object):
     #       This reports DTCs that are stored as "permanent codes" and are codes only the module can clear.
     #       Even if you’ve made a successful repair and have cleared the codes using Mode 4, these codes will remain in memory until the computer has completed
     #       its own system test.
+    MODE_10 : list[Command] = []
 
     # Miscellanious ELM commands
     MISC : list[Command] = [

@@ -32,13 +32,14 @@ from os import path, mkdir
 
 import AppSettings
 import OBD2Device
+from ListCtrl import ListCtrl
 from Connection import Connection
 from EventDebug import EventDebug
 from OBD2Port import OBD2Port
 
 
 class ConfigDlg(wx.Dialog):
-    def __init__(self, parent): # ...parent is a Frame object
+    def __init__(self, parent: wx.Frame):
         wx.Dialog.__init__(
             self, parent, wx.ID_ANY, title="Configure",
             size=(400, 200), style=wx.DIALOG_ADAPTATION_STANDARD_SIZER )
@@ -63,11 +64,14 @@ class ConfigDlg(wx.Dialog):
         self.panelDebugLevel = None
         self.boxButtons      = None
 
+        self.theStatusListCtrl: ListCtrl = None
+        self.theStatusBar = None
+
         self.SetBackgroundColour('BLACK')
         self.SetForegroundColour('WHITE')
-        self.initialize()
+        self.Initialize()
 
-    def initialize(self):
+    def Initialize(self):
         # Set up to read settings from file...
         self.config = configparser.RawConfigParser()
         self.connection = Connection(None)
@@ -128,7 +132,7 @@ class ConfigDlg(wx.Dialog):
                 self.panelPorts, wx.ID_ANY, 'Serial Port:',
                 size=self.sizeStaticText, style=wx.ALIGN_RIGHT | wx.ALIGN_CENTER_VERTICAL
             )
-        self.setPorts()
+        self.SetPorts()
 
         # Serial Baud Input Panel & Control...
         # 9600, 19200, 38400, 57600, 115200
@@ -240,8 +244,8 @@ class ConfigDlg(wx.Dialog):
         self.SetAutoLayout(True)
         sizer.Fit(self)
 
-    def setPorts(self):
-        self.checkPorts()
+    def SetPorts(self):
+        self.CheckPorts()
         if self.choicePorts == None:
             self.choicePorts = \
                 wx.Choice(self.panelPorts, wx.ID_ANY, self.posTextCtrl, self.sizeChoiceText, self.ports)
@@ -254,14 +258,14 @@ class ConfigDlg(wx.Dialog):
             iIndex = self.ports.index(self.connection.PORTNAME)
         self.choicePorts.SetSelection(iIndex)
 
-    def checkPorts(self):
+    def CheckPorts(self):
         self.ports = OBD2Port.getPorts()
         self.bGoodPorts = True
         if (len(self.ports) <= 0) :
             self.bGoodPorts = False
             self.ports = ["No Available Devices on Ports!"]
 
-    def processSettings(self, controls, result): # controls is a Frame object
+    def ProcessSettings(self, result):
         if (result == wx.ID_OK):
             # Create sections...Frame
             if not self.config.has_section("OBD") :
@@ -272,27 +276,27 @@ class ConfigDlg(wx.Dialog):
             # Set and save CONNECTION STATE...
             iIndex = 0
             if self.bGoodPorts:
-                controls.listctrlStatus.SetItem(iIndex, 1, "CONNECTION STATE by SensorProducer")
-                controls.StatusBar.SetStatusText(self.stateTitle[iIndex] + AppSettings.CHAR_QMARK, iIndex)
+                self.theStatusListCtrl.SetItem(iIndex, 1, "CONNECTION STATE by SensorProducer")
+                self.theStatusBar.SetStatusText(self.stateTitle[iIndex] + AppSettings.CHAR_QMARK, iIndex)
 
             # Set and save PROTOCOL...
             iIndex += 1
             self.connection.PROTOCOL = self.protocolShort[self.choiceProtocols.GetSelection()]
             self.config.set("OBD", "PROTOCOL", self.connection.PROTOCOL)
-            controls.listctrlStatus.SetItem(iIndex, 1, self.connection.PROTOCOL)
-            controls.StatusBar.SetStatusText(self.stateTitle[iIndex] + self.connection.PROTOCOL, iIndex)
+            self.theStatusListCtrl.SetItem(iIndex, 1, self.connection.PROTOCOL)
+            self.theStatusBar.SetStatusText(self.stateTitle[iIndex] + self.connection.PROTOCOL, iIndex)
 
             # Set and save CABLE VERSION...
             iIndex += 1
             if self.bGoodPorts:
-                controls.listctrlStatus.SetItem(iIndex, 1, "CABLE VERSION by SensorProducer")
-                controls.StatusBar.SetStatusText(self.stateTitle[iIndex] + "CABLE VERSION by SensorProducer", iIndex)
+                self.theStatusListCtrl.SetItem(iIndex, 1, "CABLE VERSION by SensorProducer")
+                self.theStatusBar.SetStatusText(self.stateTitle[iIndex] + "CABLE VERSION by SensorProducer", iIndex)
 
             # Set and save CABLE VOLTAGE...
             iIndex += 1
             if self.bGoodPorts:
-                controls.listctrlStatus.SetItem(iIndex, 1, "CABLE VOLTAGE by SensorProducer")
-                controls.StatusBar.SetStatusText(self.stateTitle[iIndex] + "CABLE VOLTAGE by SensorProducer", iIndex)
+                self.theStatusListCtrl.SetItem(iIndex, 1, "CABLE VOLTAGE by SensorProducer")
+                self.theStatusBar.SetStatusText(self.stateTitle[iIndex] + "CABLE VOLTAGE by SensorProducer", iIndex)
 
             # Set and save PORTNAME...
             iIndex += 1
@@ -301,8 +305,8 @@ class ConfigDlg(wx.Dialog):
             else:
                 self.connection.PORTNAME = Connection.strPortNameDefault
             self.config.set("OBD", "PORT", self.connection.PORTNAME)
-            controls.listctrlStatus.SetItem(iIndex, 1, self.connection.PORTNAME)
-            controls.StatusBar.SetStatusText(self.stateTitle[iIndex] + self.connection.PORTNAME, iIndex)
+            self.theStatusListCtrl.SetItem(iIndex, 1, self.connection.PORTNAME)
+            self.theStatusBar.SetStatusText(self.stateTitle[iIndex] + self.connection.PORTNAME, iIndex)
 
             # Set and save BAUD...
             iIndex += 1
@@ -313,40 +317,40 @@ class ConfigDlg(wx.Dialog):
                 self.connection.BAUD = int(self.bauds[iSelection])
             self.config.set("OBD", "BAUD", self.connection.BAUD)
             strBaud = str(self.connection.BAUD) if iSelection > 0 else "Auto"
-            controls.listctrlStatus.SetItem(iIndex, 1, strBaud )
-            controls.StatusBar.SetStatusText(self.stateTitle[iIndex] + strBaud, iIndex)
+            self.theStatusListCtrl.SetItem(iIndex, 1, strBaud )
+            self.theStatusBar.SetStatusText(self.stateTitle[iIndex] + strBaud, iIndex)
 
             # Set and save FAST...
             iIndex += 1
             self.connection.FAST = self.checkFast.GetValue()
             self.config.set("OBD", "FAST", self.connection.FAST)
             strFast = str(self.connection.FAST)
-            controls.listctrlStatus.SetItem(iIndex, 1, strFast)
-            controls.StatusBar.SetStatusText(self.stateTitle[iIndex] + (AppSettings.CHAR_CHECK if self.connection.FAST else AppSettings.CHAR_BALLOTX), iIndex)
+            self.theStatusListCtrl.SetItem(iIndex, 1, strFast)
+            self.theStatusBar.SetStatusText(self.stateTitle[iIndex] + (AppSettings.CHAR_CHECK if self.connection.FAST else AppSettings.CHAR_BALLOTX), iIndex)
 
             # Set and save CHECKVOLTS...
             iIndex += 1
             self.connection.CHECKVOLTS = self.checkVolts.GetValue()
             self.config.set("OBD", "CHECKVOLTS", self.connection.CHECKVOLTS)
             strCheckVolts = str(self.connection.CHECKVOLTS)
-            controls.listctrlStatus.SetItem(iIndex, 1, strCheckVolts)
-            controls.StatusBar.SetStatusText(self.stateTitle[iIndex] + (AppSettings.CHAR_CHECK if self.connection.CHECKVOLTS else AppSettings.CHAR_BALLOTX), iIndex)
+            self.theStatusListCtrl.SetItem(iIndex, 1, strCheckVolts)
+            self.theStatusBar.SetStatusText(self.stateTitle[iIndex] + (AppSettings.CHAR_CHECK if self.connection.CHECKVOLTS else AppSettings.CHAR_BALLOTX), iIndex)
 
             # Set and save TIMEOUT...
             iIndex += 1
             self.connection.TIMEOUT = int(self.ctrlTimeout.GetValue())
             self.config.set("OBD", "TIMEOUT", self.connection.TIMEOUT)
             strTimeOut = str(self.connection.TIMEOUT)
-            controls.listctrlStatus.SetItem(iIndex, 1, strTimeOut)
-            controls.StatusBar.SetStatusText(self.stateTitle[iIndex] + strTimeOut, iIndex)
+            self.theStatusListCtrl.SetItem(iIndex, 1, strTimeOut)
+            self.theStatusBar.SetStatusText(self.stateTitle[iIndex] + strTimeOut, iIndex)
 
             # Set and save RECONNECTS...
             iIndex += 1
             self.connection.RECONNECTS = int(self.ctrlReconnect.GetValue())
             self.config.set("OBD", "RECONNECTS", self.connection.RECONNECTS)
             strReconnects = str(self.connection.RECONNECTS)
-            controls.listctrlStatus.SetItem(iIndex, 1, strReconnects)
-            controls.StatusBar.SetStatusText(self.stateTitle[iIndex] + strReconnects, iIndex)
+            self.theStatusListCtrl.SetItem(iIndex, 1, strReconnects)
+            self.theStatusBar.SetStatusText(self.stateTitle[iIndex] + strReconnects, iIndex)
 
             # Set and save DEBUGLEVEL...
             iIndex += 1
@@ -354,8 +358,8 @@ class ConfigDlg(wx.Dialog):
             OBD2Device.setLogging()
             self.config.set("DEBUG", "LEVEL", AppSettings.DEBUG_LEVEL)
             strDebugLevel = str(AppSettings.DEBUG_LEVEL)
-            controls.listctrlStatus.SetItem(iIndex, 1, strDebugLevel)
-            controls.StatusBar.SetStatusText(self.stateTitle[iIndex] + strDebugLevel, iIndex)
+            self.theStatusListCtrl.SetItem(iIndex, 1, strDebugLevel)
+            self.theStatusBar.SetStatusText(self.stateTitle[iIndex] + strDebugLevel, iIndex)
 
             # Write configuration to the config file...
             #   Check for config file and, if it doesn't exist, create path
@@ -369,37 +373,39 @@ class ConfigDlg(wx.Dialog):
                         mkdir(self.pathOBDA)
             self.config.write( open(self.fileConfig, 'w+') )
 
-    def setStatusBar(self, theStatusBar, ):
-        theStatusBar.SetStatusWidths([50, 58, -1, 58, -1, 96, 50, 62, 90, 68, 94])
-        theStatusBar.SetStatusText(self.stateTitle[ 0] + AppSettings.CHAR_BALLOTX, 0)
-        theStatusBar.SetStatusText(self.stateTitle[ 1] + self.connection.PROTOCOL, 1)
-        theStatusBar.SetStatusText(self.stateTitle[ 2] + "Unknown", 2)
-        theStatusBar.SetStatusText(self.stateTitle[ 3] + "---", 3)
-        theStatusBar.SetStatusText(self.stateTitle[ 4] + self.connection.PORTNAME, 4)
-        theStatusBar.SetStatusText(self.stateTitle[ 5] + str(self.connection.BAUD), 5)
-        theStatusBar.SetStatusText(self.stateTitle[ 6] + (AppSettings.CHAR_CHECK if self.connection.FAST else AppSettings.CHAR_BALLOTX), 6)
-        theStatusBar.SetStatusText(self.stateTitle[ 7] + (AppSettings.CHAR_CHECK if self.connection.CHECKVOLTS else AppSettings.CHAR_BALLOTX), 7)
-        theStatusBar.SetStatusText(self.stateTitle[ 8] + str(self.connection.TIMEOUT), 8)
-        theStatusBar.SetStatusText(self.stateTitle[ 9] + str(self.connection.RECONNECTS), 9)
-        theStatusBar.SetStatusText(self.stateTitle[10] + str(AppSettings.DEBUG_LEVEL), 10)
+    def SetStatusBar(self, theStatusBar):
+        self.theStatusBar = theStatusBar
+        self.theStatusBar.SetStatusWidths([50, 58, -1, 58, -1, 96, 50, 62, 90, 68, 94])
+        self.theStatusBar.SetStatusText(self.stateTitle[ 0] + AppSettings.CHAR_BALLOTX, 0)
+        self.theStatusBar.SetStatusText(self.stateTitle[ 1] + self.connection.PROTOCOL, 1)
+        self.theStatusBar.SetStatusText(self.stateTitle[ 2] + "Unknown", 2)
+        self.theStatusBar.SetStatusText(self.stateTitle[ 3] + "---", 3)
+        self.theStatusBar.SetStatusText(self.stateTitle[ 4] + self.connection.PORTNAME, 4)
+        self.theStatusBar.SetStatusText(self.stateTitle[ 5] + str(self.connection.BAUD), 5)
+        self.theStatusBar.SetStatusText(self.stateTitle[ 6] + (AppSettings.CHAR_CHECK if self.connection.FAST else AppSettings.CHAR_BALLOTX), 6)
+        self.theStatusBar.SetStatusText(self.stateTitle[ 7] + (AppSettings.CHAR_CHECK if self.connection.CHECKVOLTS else AppSettings.CHAR_BALLOTX), 7)
+        self.theStatusBar.SetStatusText(self.stateTitle[ 8] + str(self.connection.TIMEOUT), 8)
+        self.theStatusBar.SetStatusText(self.stateTitle[ 9] + str(self.connection.RECONNECTS), 9)
+        self.theStatusBar.SetStatusText(self.stateTitle[10] + str(AppSettings.DEBUG_LEVEL), 10)
 
-    def setStatusListCtrl(self, theStatusListCtrl):
-        theStatusListCtrl.InsertColumn(0, "Description", format=wx.LIST_FORMAT_RIGHT, width=150)
-        theStatusListCtrl.InsertColumn(1, "Value")
-        theStatusListCtrl.Append(["Link:",          AppSettings.CHAR_BALLOTX])   #  0
-        theStatusListCtrl.Append(["Protocol:",      self.connection.PROTOCOL])   #  1
-        theStatusListCtrl.Append(["Cable Version:", "Unknown"])                  #  2
-        theStatusListCtrl.Append(["Cable Volts:",   "---"])                      #  3
-        theStatusListCtrl.Append(["Serial Port:",   self.connection.PORTNAME])   #  4
+    def SetStatusListCtrl(self, theStatusListCtrl):
+        self.theStatusListCtrl = theStatusListCtrl
+        self.theStatusListCtrl.InsertColumn(0, "Description", format=wx.LIST_FORMAT_RIGHT, width=150)
+        self.theStatusListCtrl.InsertColumn(1, "Value")
+        self.theStatusListCtrl.Append(["Link:",          AppSettings.CHAR_BALLOTX])   #  0
+        self.theStatusListCtrl.Append(["Protocol:",      self.connection.PROTOCOL])   #  1
+        self.theStatusListCtrl.Append(["Cable Version:", "Unknown"])                  #  2
+        self.theStatusListCtrl.Append(["Cable Volts:",   "---"])                      #  3
+        self.theStatusListCtrl.Append(["Serial Port:",   self.connection.PORTNAME])   #  4
         strBaud = str(self.connection.BAUD) if self.connection.BAUD > 0 else "Auto"
-        theStatusListCtrl.Append(["Baud:",          strBaud])                    #  5
-        theStatusListCtrl.Append(["Fast Connect:",  self.connection.FAST])       #  6
-        theStatusListCtrl.Append(["Check Voltage:", self.connection.CHECKVOLTS]) #  7
-        theStatusListCtrl.Append(["Timeout:",       self.connection.TIMEOUT])    #  8
-        theStatusListCtrl.Append(["Reconnects:",    self.connection.RECONNECTS]) #  9
-        theStatusListCtrl.Append(["Debug:",         AppSettings.DEBUG_LEVEL])    # 10
+        self.theStatusListCtrl.Append(["Baud:",          strBaud])                    #  5
+        self.theStatusListCtrl.Append(["Fast Connect:",  self.connection.FAST])       #  6
+        self.theStatusListCtrl.Append(["Check Voltage:", self.connection.CHECKVOLTS]) #  7
+        self.theStatusListCtrl.Append(["Timeout:",       self.connection.TIMEOUT])    #  8
+        self.theStatusListCtrl.Append(["Reconnects:",    self.connection.RECONNECTS]) #  9
+        self.theStatusListCtrl.Append(["Debug:",         AppSettings.DEBUG_LEVEL])    # 10
 
-    def updateStatus(self, controls, iItem, iColumn, strValue):
-        controls.listctrlStatus.SetItem(iItem, iColumn, strValue)
-        controls.StatusBar.SetStatusText(self.stateTitle[iItem] + strValue, iItem)
+    def UpdateStatus(self, data):
+        self.theStatusListCtrl.SetItem(data[0], data[1], data[2])
+        self.theStatusBar.SetStatusText(self.stateTitle[data[0]] + data[2], data[0])
 

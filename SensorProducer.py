@@ -25,10 +25,13 @@
 
 import wx
 import threading
+from typing import Callable
 
 import AppSettings
 from Connection import Connection
 from OBD2Port import OBD2Port
+from SensorManager import SensorManager
+from EventHandler import EventHandler
 from EventDebug import EventDebug
 from EventDTC import EventDTC
 from EventResult import EventResult
@@ -36,117 +39,140 @@ from EventStatus import EventStatus
 from EventTest import EventTest
 from OBD2Device.Codes import Codes
 
+class ThreadCommands:
+    Null       =  0 # ...Do Nothing
+    DTC_Clear  =  1 # ...Clear DTCs
+    DTC_Load   =  2 # ...Get DTCs
+    Disconnect = -1 # ...Disconnect from vehicle's ECU
+
 # A Sensor Producer class to produce sensor managers...
 class SensorProducer(threading.Thread):
-    def __init__(self, controls): # controls is a Frame object
+    def __init__(self, connection: Connection, notebook: wx.Notebook, events: EventHandler, funcSetTestIgnition: Callable):
         super().__init__()
-        self.controls = controls
-        self.connection = Connection(controls.configDialog.connection)
-        self.notebook = controls.notebook
-        self.supported = [0] * 3
-        self.active = [[]] * 3
+        self.connection = Connection(connection) # ...copy
+        self.PORT = None
+        self.notebook = notebook
+        self.events = events
+        self.setTestIgnition = funcSetTestIgnition
+
+        self.iSensorListLen = len(SensorManager.SENSORS)
+        self.supported = [0] * self.iSensorListLen
+        self.active = [[]] * self.iSensorListLen
+
+        self.iThreadControl = ThreadCommands.Null
+        self.iCurrSensorsPage = 0 # ...starting sensors page
 
     def run(self):
-        self.StartProduction()
-        self.StopProduction()
+        self.startProduction()
+        self.stopProduction()
 
-    def StartProduction(self):
-        wx.PostEvent( self.controls, EventDebug( [2, "Starting Sensor Connection..."] ) )
-        wx.PostEvent( self.controls, EventStatus( [0, 1, AppSettings.CHAR_QMARK] ) )
-        self.InitCommunication()
-        if self.connection.PORT.Connected == False:  # ...cannot connect, exit thread
-            wx.PostEvent( self.controls, EventDebug( [1, "ERROR: Connection Failed!"] ) )
+    def setThreadControl(self, iThreadControl: int):
+        self.iThreadControl = iThreadControl
+
+    def setSensorPage(self, iCurrSensorPage: int):
+        self.iCurrSensorsPage = iCurrSensorPage
+
+    def getSensorPage(self) -> int:
+        return self.iCurrSensorsPage
+
+    def startProduction(self):
+        wx.PostEvent( self.events, EventDebug( [2, "Starting Sensor Connection..."] ) )
+        wx.PostEvent( self.events, EventStatus( [0, 1, AppSettings.CHAR_QMARK] ) )
+        self.initCommunication()
+        if self.PORT.bConnected == False:  # ...cannot connect, exit thread
+            wx.PostEvent( self.events, EventDebug( [1, "ERROR: Connection Failed!"] ) )
             # Signal app that communication failed...
-            wx.PostEvent( self.controls, EventStatus( [0, 1, AppSettings.CHAR_CROSSX] ) )
-            wx.PostEvent( self.controls, EventStatus( [-1, -1, "SIGNAL: Failed"] ) ) # ...signal connection failure to app
+            wx.PostEvent( self.events, EventStatus( [0, 1, AppSettings.CHAR_CROSSX] ) )
+            wx.PostEvent( self.events, EventStatus( [-1, -1, "SIGNAL: Failed"] ) ) # ...signal connection failure to app
             return
 
-        wx.PostEvent( self.controls, EventDebug( [3, "  Connected"] ) )
-        wx.PostEvent( self.controls, EventStatus( [0, 1, AppSettings.CHAR_CHECK] ) )
-        wx.PostEvent( self.controls, EventStatus( [2, 1, self.connection.PORT.ELMver] ) )
-        wx.PostEvent( self.controls, EventStatus( [3, 1, self.connection.PORT.ELMvolts] ) )
+        wx.PostEvent( self.events, EventDebug( [3, "  Connected"] ) )
+        wx.PostEvent( self.events, EventStatus( [0, 1, AppSettings.CHAR_CHECK] ) )
+        wx.PostEvent( self.events, EventStatus( [2, 1, self.PORT.strELMver] ) )
+        wx.PostEvent( self.events, EventStatus( [3, 1, self.PORT.strELMvolts] ) )
         statePrev = -1
         stateCurr = -1
-        while self.controls.ThreadControl != -1:  # ...connected, thread loop...
+        while self.iThreadControl != ThreadCommands.Disconnect:  # ...thread loop, not disconnecting...
             statePrev = stateCurr # ...store last state
             stateCurr = self.notebook.GetSelection()
 
             if stateCurr == 0:  # ...Status Page
                 if statePrev != stateCurr :
-                    wx.PostEvent( self.controls, EventDebug([2, "Status Page..."] ) )
+                    wx.PostEvent( self.events, EventDebug([2, "Status Page..."] ) )
 
             elif stateCurr == 1:  # ...Tests Page
                 if statePrev != stateCurr :
-                    wx.PostEvent( self.controls, EventDebug([2, "Test Page..."] ) )
-                results = self.connection.PORT.getStatusTests()
-                if results:
-                    for iIndex in range(0, len(results)):
-                        wx.PostEvent( self.controls, EventTest( [ iIndex, 1, results[iIndex] ] ) )
+                    wx.PostEvent( self.events, EventDebug([2, "Test Page..."] ) )
+                astrResults = self.PORT.getStatusTests()
+                if astrResults:
+                    for iIndex in range(0, len(astrResults)):
+                        if (astrResults[iIndex] != None): # ...spacer
+                            wx.PostEvent( self.events, EventTest( [ iIndex, 1, astrResults[iIndex] ] ) )
 
             elif stateCurr == 2:  # ...Sensor Page
                 if statePrev != stateCurr :
-                    wx.PostEvent( self.controls, EventDebug( [2, "Sensor Page..."] ) )
+                    wx.PostEvent( self.events, EventDebug( [2, "Sensor Page..."] ) )
                 iStartSensors = 3
-                if self.controls.iCurrSensorsPage > 0 :
+                if self.iCurrSensorsPage > 0 :
                     iStartSensors = 1
 
-                for iIndex in range(iStartSensors, len(self.active[self.controls.iCurrSensorsPage])):
-                    if self.active[self.controls.iCurrSensorsPage][iIndex]:
-                        tupSensInfo = self.connection.PORT.getSensorInfo(self.controls.iCurrSensorsPage, iIndex)
-                        listResponse = [self.controls.iCurrSensorsPage, iIndex, 2, "%s (%s)" % (tupSensInfo[1], tupSensInfo[2])]
-                        wx.PostEvent( self.controls, EventResult(listResponse) )
+                for iIndex in range(iStartSensors, len(self.active[self.iCurrSensorsPage])):
+                    if self.active[self.iCurrSensorsPage][iIndex]:
+                        tupSensorInfo = self.PORT.getSensorInfo(self.iCurrSensorsPage, iIndex)
+                        listResponse = [self.iCurrSensorsPage, iIndex, 2, "%s (%s)" % (tupSensorInfo[1], tupSensorInfo[2])]
+                        wx.PostEvent( self.events, EventResult(listResponse) )
 
             elif stateCurr == 3:  # ...DTC Page
                 if statePrev != stateCurr :
-                    wx.PostEvent( self.controls, EventDebug( [2, "DTC Page..."] ) )
+                    wx.PostEvent( self.events, EventDebug( [2, "DTC Page..."] ) )
 
-                if self.controls.ThreadControl == 1:  # ...Clear DTC...
-                    listResponse = self.connection.PORT.clearDTC()
+                if self.iThreadControl == ThreadCommands.DTC_Clear:
+                    listResponse = self.PORT.clearDTC()
                     # Response is N/A for CLEAR_DTC...no need to process
 
-                    # Before resetting ThreadControl, check for a disconnect
-                    if self.controls.ThreadControl == -1:
+                    # Before resetting ThreadControl, check for a disconnect...
+                    if self.iThreadControl == ThreadCommands.Disconnect:
                         break
-                    self.controls.ThreadControl = 2  # ...signal Get DTC command on port
+                    self.iThreadControl = ThreadCommands.DTC_Load
 
-                if self.controls.ThreadControl == 2:  # ...Get DTC...
-                    wx.PostEvent( self.controls, EventDTC(0) )  # ...clear list
-                    listCodesDTC = self.connection.PORT.getDTC()
+                if self.iThreadControl == ThreadCommands.DTC_Load:
+                    wx.PostEvent( self.events, EventDTC(0) )  # ...clear list
+                    listCodesDTC = self.PORT.getDTC()
                     if len(listCodesDTC) == 0:
                         listResponse = ["", "", "No DTC Codes (all clear)"]
-                        wx.PostEvent( self.controls, EventDTC(listResponse) )
+                        wx.PostEvent( self.events, EventDTC(listResponse) )
                     for iIndex in range(0, len(listCodesDTC)):
                         listResponse = [ listCodesDTC[iIndex][1], listCodesDTC[iIndex][0], Codes.Codes[ listCodesDTC[iIndex][1] ] ]
-                        wx.PostEvent( self.controls, EventDTC(listResponse) )
+                        wx.PostEvent( self.events, EventDTC(listResponse) )
 
-                    # Before resetting ThreadControl, check for a disconnect
-                    if self.controls.ThreadControl == -1:  # ...disconnect
+                    # Before resetting ThreadControl, check for a disconnect...
+                    if self.iThreadControl == ThreadCommands.Disconnect:
                         break
-                    self.controls.ThreadControl = 0  # ...signal do nothing on port
+                    self.iThreadControl = ThreadCommands.Null
 
             elif stateCurr == 4:  # ...Trace Page
                 if statePrev != stateCurr :
-                    wx.PostEvent( self.controls, EventDebug( [2, "Trace Page..."] ) )
+                    wx.PostEvent( self.events, EventDebug( [2, "Trace Page..."] ) )
                 # View the trace log...
 
             else: # ...everything else
                 if statePrev != stateCurr :
-                    wx.PostEvent( self.controls, EventDebug( [2, "ERROR Page..."] ) )
+                    wx.PostEvent( self.events, EventDebug( [2, "ERROR Page..."] ) )
                     # We should never see this message
 
-            if self.controls.ThreadControl == -1:  # ...end thread
+            if self.iThreadControl == ThreadCommands.Disconnect:  # ...end thread
                 break
 
-    def InitCommunication(self):
-        self.connection.PORT = OBD2Port(self.controls, self.connection)
-        if self.connection.PORT.Connected == False:  # ...cannot connect to vehicle
+    def initCommunication(self):
+        self.PORT = OBD2Port(self.connection, self.events, self.getSensorPage, self.setTestIgnition)
+        if self.PORT.bConnected == False:  # ...cannot connect to vehicle
             return
 
-        wx.PostEvent( self.controls, EventDebug( [1, "Communication initialized..."] ) )
+        wx.PostEvent( self.events, EventDebug( [1, "Communication initialized..."] ) )
 
         # Populate sensor pages with initial data...
-        for iSensorGroup in range(3) :
-            response = self.connection.PORT.getSensorInfo(iSensorGroup, 0)[1]
+        for iSensorGroup in range(self.iSensorListLen) :
+            response = self.PORT.getSensorInfo(iSensorGroup, 0)[1]
             if ( response.isNull() ) :
                 # NOTE: Event message already from getSensorInfo()
                 self.supported[iSensorGroup] = ""
@@ -158,42 +184,42 @@ class SensorProducer(threading.Thread):
                 self.active[iSensorGroup].append(bSupport)
 
                 if bSupport :
-                    wx.PostEvent( self.controls, EventResult([iSensorGroup, iIndex, 0, AppSettings.CHAR_CHECK] ) )
+                    wx.PostEvent( self.events, EventResult([iSensorGroup, iIndex, 0, AppSettings.CHAR_CHECK] ) )
                 else:
-                    wx.PostEvent( self.controls, EventResult([iSensorGroup, iIndex, 0, AppSettings.CHAR_BALLOTX] ) )
+                    wx.PostEvent( self.events, EventResult([iSensorGroup, iIndex, 0, AppSettings.CHAR_BALLOTX] ) )
 
-        wx.PostEvent( self.controls, EventDebug( [3, "  Sensors marked for support..."] ) )
+        wx.PostEvent( self.events, EventDebug( [3, "  Sensors marked for support..."] ) )
 
-    def StopProduction(self):
-        wx.PostEvent( self.controls, EventDebug( [2, "Stopping Sensor Connection..."] ) )
+    def stopProduction(self):
+        wx.PostEvent( self.events, EventDebug( [2, "Stopping Sensor Connection..."] ) )
         # If stop is called on a defined connection port...
-        if self.connection.PORT != None:
-            self.connection.PORT.close()
-            self.connection.PORT = None
-        wx.PostEvent( self.controls, EventStatus([0, 1, AppSettings.CHAR_BALLOTX] ) )
-        wx.PostEvent( self.controls, EventStatus([2, 1, "Unknown"] ) )
-        wx.PostEvent( self.controls, EventStatus([3, 1, "---"] ) )
+        if self.PORT != None:
+            self.PORT.close()
+            self.PORT = None
+        wx.PostEvent( self.events, EventStatus([0, 1, AppSettings.CHAR_BALLOTX] ) )
+        wx.PostEvent( self.events, EventStatus([2, 1, "Unknown"] ) )
+        wx.PostEvent( self.events, EventStatus([3, 1, "---"] ) )
 
-    def SetIDOff(self, iID):
-        wx.PostEvent( self.controls, EventDebug( [2, "Setting Sensor ID OFF"] ) )
+    def setIDOff(self, iID):
+        wx.PostEvent( self.events, EventDebug( [2, "Setting Sensor ID OFF"] ) )
         if iID >= 0 and iID < len(self.active):
             self.active[iID] = False
         else:
-            wx.PostEvent( self.controls, EventDebug( [2, "Invalid Sensor ID"] ) )
+            wx.PostEvent( self.events, EventDebug( [2, "Invalid Sensor ID"] ) )
 
-    def SetIDOn(self, iID):
-        wx.PostEvent( self.controls, EventDebug( [2, "Setting Sensor ID ON"] ) )
+    def setIDOn(self, iID):
+        wx.PostEvent( self.events, EventDebug( [2, "Setting Sensor ID ON"] ) )
         if iID >= 0 and iID < len(self.active):
             self.active[iID] = True
         else:
-            wx.PostEvent( self.controls, EventDebug( [2, "Invalid Sensor ID"] ) )
+            wx.PostEvent( self.events, EventDebug( [2, "Invalid Sensor ID"] ) )
 
-    def SetAllIDsOff(self):
+    def setAllIDsOff(self):
         for iID in range(0, len(self.active)):
-            self.SetIDOff(iID)
+            self.setIDOff(iID)
 
-    def SetAllIDsOn(self):
+    def setAllIDsOn(self):
         for iID in range(0, len(self.active)):
-            self.SetIDOff(iID)
+            self.setIDOff(iID)
 
 # ...end Class SensorProducer
