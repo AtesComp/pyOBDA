@@ -28,15 +28,16 @@ import wx
 import time
 from typing import Callable
 
-import OBD2Device
 from Connection import Connection
 from EventHandler import EventHandler
 from EventDebug import EventDebug
 from SensorManager import SensorManager
 from Sensor import Sensor
 from OBD2Device.CommandList import CommandList
+from OBD2Device.OBD2Connector import OBD2Connector
 from OBD2Device.Response import Response
 from OBD2Device.Status import Status
+from OBD2Device.utils import scanSerialPorts
 
 class OBD2Port :
     """
@@ -45,7 +46,7 @@ class OBD2Port :
 
     @classmethod
     def getPorts(cls) :
-        return OBD2Device.scanSerialPorts()
+        return scanSerialPorts()
 
     def __init__(self, connection: Connection, events: EventHandler, funcGetSensorPage: Callable, funcSetTestIgnition: Callable):
         self.strELMver = "none"
@@ -62,7 +63,7 @@ class OBD2Port :
         self.cmds = CommandList()
 
         self.port = \
-            OBD2Device.OBD2Connector(
+            OBD2Connector(
                 strPort        = connection.PORTNAME,
                 iBaudRate      = connection.BAUD,
                 strProtocol    = connection.PROTOCOL,
