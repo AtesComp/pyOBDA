@@ -36,31 +36,37 @@ class Connection():
         self.setConnection(connect)
 
     def setConnection(self, connect) :
+        self.PROTOCOL:str = "6"
         self.PORTNAME:str = Connection.strPortNameDefault
         self.BAUD:int = 115200
-        self.PROTOCOL:str = "6"
         self.FAST:bool = True
-        self.TIMEOUT:float = 10.0
         self.CHECKVOLTS:bool = True
+        self.TIMEOUT:float = 10.0
         self.RECONNECTS:int = 3
+        self.DELAY:float = 1.0
         AppSettings.DEBUG_LEVEL = Connection.iDebugLevelDefault
+
         OBD2Device.setLogging()
+
         if connect != None :
+            self.PROTOCOL = connect.PROTOCOL
             self.PORTNAME = connect.PORTNAME
             self.BAUD = connect.BAUD
-            self.PROTOCOL = connect.PROTOCOL
             self.FAST = connect.FAST
-            self.TIMEOUT = connect.TIMEOUT
             self.CHECKVOLTS = connect.CHECKVOLTS
+            self.TIMEOUT = connect.TIMEOUT
             self.RECONNECTS = connect.RECONNECTS
+            self.DELAY = connect.DELAY
 
     def resetConnection(self):
+        self.PROTOCOL = "6"
         self.PORTNAME = Connection.strPortNameDefault
         self.BAUD = 115200
-        self.PROTOCOL = "6"
         self.FAST = True
-        self.TIMEOUT = 10.0
         self.CHECKVOLTS = True
+        self.TIMEOUT = 10.0
         self.RECONNECTS = 3
+        self.DELAY = 1.0
         AppSettings.DEBUG_LEVEL = Connection.iDebugLevelDefault
+
         OBD2Device.setLogging()

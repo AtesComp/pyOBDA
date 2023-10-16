@@ -24,12 +24,11 @@
 ############################################################################
 
 import wx
-from typing import Callable
-import OBD2Device
-
 #import string # ...for logSensor()
 import time
+from typing import Callable
 
+import OBD2Device
 from Connection import Connection
 from EventHandler import EventHandler
 from EventDebug import EventDebug
@@ -40,7 +39,9 @@ from OBD2Device.Response import Response
 from OBD2Device.Status import Status
 
 class OBD2Port :
-    # OBDPort abstracts all communication with OBD-II devices...
+    """
+    The OBDPort Class abstracts all communication with OBD-II devices.
+    """
 
     @classmethod
     def getPorts(cls) :
@@ -115,17 +116,18 @@ class OBD2Port :
             break
 
     def close(self):
-        # Resets device and closes all associated file handles...
+        """
+        Close the port by resetting the interface and closing the associated connector.
+        """
 
         if (self.port and self.port != None) and self.bConnected == True:
-            response = self.port.query(self.cmds.ELM_VERSION) # atz
+            response = self.port.query(self.cmds.ELM_VERSION)
             self.port.close()
 
         self.port = None
         self.bConnected = False
 
     def __processCommand(self, command):
-        # Internal use only: not a public interface...
         response = Response()
         if self.port :
             wx.PostEvent(self.events, EventDebug([3, "Command: " + str(command)]))
@@ -139,25 +141,27 @@ class OBD2Port :
         return response
 
 
-    # Return tabular sensor response from a sensor index of the current sensor page...
     def getSensorInfo(self, iSensorIndex):
-        # Returns 3-tuple of given sensors. 3-tuple consists of
-        # ( Sensor Table Descriptor (string), Sensor Response (Response), Sensor Unit (string) )...
-        sensor : Sensor = SensorManager.SENSORS[ self.getSensorPage() ][iSensorIndex]
-        response = self.__processCommand(sensor.cmd)
-        return (sensor.strTableDesc, response, sensor.strUnit)
+        """
+        Return the tabular sensor response from the current sensor page for a sensor index.
+        """
 
-    # Return tabular sensor response from a sensor group and index...
+        return self.getSensorInfo( self.getSensorPage(), iSensorIndex )
+
     def getSensorInfo(self, iSensorGroup, iSensorIndex):
-        # Returns 3-tuple of given sensors. 3-tuple consists of
-        # ( Sensor Table Descriptor (string), Sensor Response (Response), Sensor Unit (string) )...
+        """
+        Return the tabular sensor response for a sensor group and a sensor index.
+
+        Return a 3-tuple of given sensors. 3-tuple consists of
+        ( Sensor Table Descriptor (string), Sensor Response (Response), Sensor Unit (string) ).
+        """
         sensor : Sensor = SensorManager.SENSORS[iSensorGroup][iSensorIndex]
         response = self.__processCommand(sensor.cmd)
         return (sensor.strTableDesc, response, sensor.strUnit)
 
 
     def getStatusTests(self) -> list[str]:
-        statusRes = self.getSensorInfo(0, 1)[1]  # ...Status Since Clear DTC
+        statusRes = self.getSensorInfo(0, 1)[1]  # ...Status Info Response
         if ( statusRes.isNull() ) :
             # NOTE: Event message already from getSensorInfo()
             return []
@@ -169,8 +173,11 @@ class OBD2Port :
 
 
     def getDTC(self):
-        # Returns a list of all pending DTC codes. Each element consists of
-        # a 2-tuple: ( DTC Code (string), Code Description (string) )...
+        """
+        Returns a list of all pending DTC codes. Each element consists of a 2-tuple:
+        ( DTC Code (string), Code Description (string) ).
+        """
+
         listDTCCodes = []
 
         statusRes = self.getSensorInfo(0, 1)[1]  # ...Status Info Response
@@ -194,7 +201,7 @@ class OBD2Port :
                 wx.PostEvent(self.events, EventDebug([2, "WARNING: Status DTC count does not match actual DTC count!"]))
             if (iDTCCount > 0) :
                 for DTCCode in response.value :
-                    listDTCCodes.append(["Active", DTCCode[0]])
+                    listDTCCodes.append(["Confirmed", DTCCode[0]])
 
         # Get current DTC...
         response = self.__processCommand(self.cmds.GET_CURRENT_DTC)
@@ -203,12 +210,15 @@ class OBD2Port :
         else :
             if (len(response.value) > 0) :
                 for DTCCode in response.value :
-                    listDTCCodes.append(["Passive", DTCCode[0]])
+                    listDTCCodes.append(["Pending", DTCCode[0]])
 
         return listDTCCodes
 
     def clearDTC(self):
-        # Clears all DTCs and freeze frame data...
+        """
+        Clears all DTCs and freeze frame data.
+        """
+
         response = self.__processCommand(self.cmds.CLEAR_DTC)
         # NOTE: Error message already from __processCommand()
         return response

@@ -38,9 +38,8 @@ class Status:
         self.iIgnitionType :int = None
         self._testsByName : dict[str, StatusTest] = {}
 
-        # make sure each test is available by name
-        # until real data comes it. This also prevents things from
-        # breaking when the user looks up a standard test that's null.
+        # Check that each test is available by name until real data comes it.
+        # This also prevents things from breaking when the user looks up a standard test that is null.
         testNull = StatusTest()
         for strName in Codes.Test.Base + Codes.Test.Spark + Codes.Test.Compression:
             if strName:  # filter out None/reserved tests

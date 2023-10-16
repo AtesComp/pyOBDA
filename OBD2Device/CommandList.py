@@ -1,32 +1,30 @@
-########################################################################
-#                                                                      #
-# python-OBD: A python OBD-II serial module derived from pyobd         #
-#                                                                      #
-# Copyright 2004 Donour Sizemore (donour@uchicago.edu)                 #
-# Copyright 2009 Secons Ltd. (www.obdtester.com)                       #
-# Copyright 2009 Peter J. Creath                                       #
-# Copyright 2016 Brendan Whitfield (brendan-w.com)                     #
-#                                                                      #
-########################################################################
-#                                                                      #
-# CommandList.py   commands                                            #
-#                                                                      #
-# This file is part of python-OBD (a derivative of pyOBD)              #
-#                                                                      #
-# python-OBD is free software: you can redistribute it and/or modify   #
-# it under the terms of the GNU General Public License as published by #
-# the Free Software Foundation, either version 2 of the License, or    #
-# (at your option) any later version.                                  #
-#                                                                      #
-# python-OBD is distributed in the hope that it will be useful,        #
-# but WITHOUT ANY WARRANTY; without even the implied warranty of       #
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the        #
-# GNU General Public License for more details.                         #
-#                                                                      #
-# You should have received a copy of the GNU General Public License    #
-# along with python-OBD.  If not, see <http://www.gnu.org/licenses/>.  #
-#                                                                      #
-########################################################################
+############################################################################
+#
+# Python Onboard Diagnostics II Advanced
+#
+# CommandList.py
+#
+# Copyright 2021-2023 Keven L. Ates (atescomp@gmail.com)
+#
+# This file is part of the Onboard Diagnostics II Advanced (pyOBDA) system.
+#
+# This file was rewritten from the project "python-OBD" file "obd/commands.py"
+#
+# pyOBDA is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# pyOBDA is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with pyOBDA; if not, write to the Free Software Foundation, Inc.,
+# 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+############################################################################
+
 
 import logging
 
@@ -37,11 +35,12 @@ from .decoders import *
 logger = logging.getLogger(__name__)
 
 
-# Class CommandList
-#   Assemble the Command List tables by Mode
-#   Allow access by 1. Name key and 2. Mode and PID indices
-
 class CommandList(object):
+    """
+    The CommandList Class assembles the Command List tables by Mode.
+
+    Allow access by 1) Name key and 2) Mode and PID indices.
+    """
 
     #
     # Command List Tables

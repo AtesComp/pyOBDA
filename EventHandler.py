@@ -30,74 +30,75 @@ import AppSettings
 from ListCtrl import ListCtrl
 from EventDebug import EventDebug
 from EventDTC import EventDTC
-from EventResult import EventResult
-from EventStatus import EventStatus
+from EventSensor import EventSensor
+from EventConnection import EventConnection
 from EventTest import EventTest
 
-#
-# The pyOBDA Event Handler
-#
 class EventHandler(wx.EvtHandler):
-    def __init__(self, funcSensorShutdown: Callable, funcUpdateStatus: Callable):
-        wx.EvtHandler.__init__(self)
-        self.SensorShutdown = funcSensorShutdown
-        self.UpdateStatus = funcUpdateStatus
+    """
+    The pyOBDA Event Handler Class.
+    """
 
+    def __init__(self, funcShutdownConnection: Callable, funcUpdateConnection: Callable):
+        wx.EvtHandler.__init__(self)
+        self.shutdownConnection = funcShutdownConnection
+        self.updateConnection = funcUpdateConnection
+
+        self.listctrlConnection = None
         self.listctrlTests = None
         self.listctrlSensors = None
         self.listctrlDTC = None
-        self.listctrlStatus = None
-        self.listctrlTrace = None
+        self.listctrlDebug = None
 
         # ====================
         # Connect Process Event Handlers
         # ====================
 
-        self.Connect(-1, -1, EventTest.ID,   self.OnTests)
-        self.Connect(-1, -1, EventResult.ID, self.OnResult)
-        self.Connect(-1, -1, EventDTC.ID,    self.OnDTC)
-        self.Connect(-1, -1, EventStatus.ID, self.OnStatus)
-        self.Connect(-1, -1, EventDebug.ID,  self.OnDebug)
+        self.Connect(-1, -1, EventConnection.ID, self.onConnection)
+        self.Connect(-1, -1, EventTest.ID,   self.onTests)
+        self.Connect(-1, -1, EventSensor.ID, self.onSensor)
+        self.Connect(-1, -1, EventDTC.ID,    self.onDTC)
+        self.Connect(-1, -1, EventDebug.ID,  self.onDebug)
 
 
-    def SetTests(self, listctrlTests: ListCtrl):
+    def setConnection(self, listctrlConnection: ListCtrl):
+        self.listctrlConnection = listctrlConnection
+
+    def setTests(self, listctrlTests: ListCtrl):
         self.listctrlTests = listctrlTests
 
-    def SetSensors(self, listctrlSensors: ListCtrl):
+    def setSensors(self, listctrlSensors: ListCtrl):
         self.listctrlSensors = listctrlSensors
 
-    def SetDTC(self, listctrlDTC: ListCtrl):
+    def setDTC(self, listctrlDTC: ListCtrl):
         self.listctrlDTC = listctrlDTC
 
-    def SetStatus(self, listctrlStatus: ListCtrl):
-        self.listctrlStatus = listctrlStatus
-
-    def SetTrace(self, listctrlTrace: ListCtrl):
-        self.listctrlTrace = listctrlTrace
+    def setDebug(self, listctrlDebug: ListCtrl):
+        self.listctrlDebug = listctrlDebug
 
 
-    def OnTests(self, event) :
+    def onConnection(self, event) :
+        wx.PostEvent( self, EventDebug( [2, "OnConnection..." + event.data[2]] ) )
+        if event.data[0] == -1:  # ...signal for connection failed...
+            self.shutdownConnection()
+        else :
+            self.updateConnection(event.data)
+
+    def onTests(self, event) :
         wx.PostEvent( self, EventDebug([2, "OnTests..."]) )
         self.listctrlTests.SetItem(event.data[0], event.data[1], event.data[2])
 
-    def OnResult(self, event) :
-        wx.PostEvent( self, EventDebug([2, "OnResult..."]) )
+    def onSensor(self, event) :
+        wx.PostEvent( self, EventDebug([2, "OnSensor..."]) )
         self.listctrlSensors[ event.data[0] ].SetItem(event.data[1], event.data[2], event.data[3])
 
-    def OnDTC(self, event) :
+    def onDTC(self, event) :
         wx.PostEvent( self, EventDebug([2, "OnDTC..."]) )
         if event.data == 0:  # ...signal that DTC was cleared
             self.listctrlDTC.DeleteAllItems()
         else:
             self.listctrlDTC.Append(event.data)
 
-    def OnStatus(self, event) :
-        wx.PostEvent( self, EventDebug( [2, "OnStatus..." + event.data[2]] ) )
-        if event.data[0] == -1:  # ...signal for connection failed...
-            self.SensorShutdown()
-        else :
-            self.UpdateStatus(event.data)
-
-    def OnDebug(self, event) :
+    def onDebug(self, event) :
         if AppSettings.DEBUG_LEVEL >= event.data[0]:
-            self.listctrlTrace.Append([str(event.data[0]), event.data[1]])
+            self.listctrlDebug.Append([str(event.data[0]), event.data[1]])

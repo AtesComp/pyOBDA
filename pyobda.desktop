@@ -1,7 +1,7 @@
 [Desktop Entry]
 Encoding=UTF8
 Icon=/usr/share/pyobda/pyobda.gif
-Name=pyobda: Advanced OBD2 Diagnostics
+Name=pyobda: OBD2 Advanced Diagnostics
 Comment=Onboard 2 Advanced vehicle diagnostics (ELM-32x compatible interface)
 Exec=python3 /usr/bin/pyobda
 Terminal=false

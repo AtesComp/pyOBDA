@@ -2,7 +2,7 @@
 #
 # Python Onboard Diagnostics II Advanced
 #
-# EventResult.py
+# EventStatus.py
 #
 # Copyright 2021-2023 Keven L. Ates (atescomp@gmail.com)
 #
@@ -23,17 +23,17 @@
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ############################################################################
 
-#
-# Generic event for sensor result window.
-#
 import wx
 
-class EventResult(wx.PyEvent):
-    # Simple event to carry arbitrary result data...
-    ID = 1000
+class EventConnection(wx.PyEvent):
+    """
+    Event Class for Connection result data.
+    """
+
+    ID = 1002
 
     def __init__(self, data):
         # Init Result Event...
         wx.PyEvent.__init__(self)
-        self.SetEventType(EventResult.ID)
+        self.SetEventType(EventConnection.ID)
         self.data = data

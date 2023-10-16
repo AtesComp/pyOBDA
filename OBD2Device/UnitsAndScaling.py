@@ -42,8 +42,9 @@ Unit.define("ppm = count / 1000000 = PPM = parts_per_million")
 
 
 class UAS:
-    # Unit and Scale Conversion Class
-    #   Used in the decoding of Mode 06 monitor responses
+    """
+    Unit and Scale Conversion Class used in the decoding of Mode 06 monitor responses.
+    """
 
     def __init__(self, bSigned, fScale : float, funcUnit : Callable, fOffset : float = 0.0):
         self.bSigned = bSigned

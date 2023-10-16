@@ -23,13 +23,13 @@
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ############################################################################
 
-#
-# Define Debug events for sensor result window
-#
 import wx
 
 class EventDebug(wx.PyEvent):
-    # Simple event to carry arbitrary result data...
+    """
+    Event Class for Debug result data.
+    """
+
     ID = 1010
 
     def __init__(self, data):

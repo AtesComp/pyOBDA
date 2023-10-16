@@ -44,22 +44,24 @@ logger = logging.getLogger(__name__)
 
 
 class ELM327:
-    # Handles communication with the ELM327 adapter.
-    #
-    # See the ELM327 datasheet in the docs directory.
-    #
-    # Instantiate with a port (/dev/ttyUSB0, etc...) using:
-    #   Selected baud (bps), 8 bit, No parity, 1 stop bit
-    #       9600, 8, None, 1
-    #      38400, 8, None, 1
-    #
-    # After instantiation with a port (/dev/ttyUSB0, etc...), the following functions become available:
-    #   send_and_parse()
-    #   close()
-    #   status()
-    #   port_name()
-    #   protocol_name()
-    #   ecus()
+    """
+    Handle communication with the ELM327 adapter.
+
+    See the ELM327 datasheet in the docs directory.
+
+    Instantiate with a port (/dev/ttyUSB0, etc...) using:
+        Selected baud (bps), 8 bit, No parity, 1 stop bit
+            9600, 8, None, 1
+           38400, 8, None, 1
+
+    After instantiation with a port (/dev/ttyUSB0, etc...), the following functions become available:
+        send_and_parse()
+        close()
+        status()
+        getPortName()
+        getProtocolName()
+        getECUsValues()
+    """
 
     # ELM Chevron (prompt)
     ELM_PROMPT = '>'
@@ -166,7 +168,9 @@ class ELM327:
 
     def __init__(self, strPortName:str, iBaudRate:int, strProtocol:str, fTimeout:float,
                  bCheckVoltage=True, bStartLowPower=False):
-        # Initializes port by resetting device and gettings supported PIDs
+        """
+        Initialize the ELM interface port by resetting and gettings supported PIDs.
+        """
 
         if strProtocol == "" or strProtocol == None:
             strProtocol = "Auto"
@@ -352,10 +356,12 @@ class ELM327:
         return True
 
     def findProtocol(self):
-        # Attempts communication with the vehicle
-        #
-        # If no protocol is specified, then protocols are tried with "AT TP".
-        # On success, load the appropriate protocol parser and return True
+        """
+        Attempts communication with the vehicle via the ELM interface.
+
+        If no protocol is specified, then protocols are tried with "AT TP".
+        On success, load the appropriate protocol parser and return True.
+        """
 
         #
         # Command: ELM "Auto Protocol" mode
@@ -433,9 +439,11 @@ class ELM327:
             return True
 
     def findBaudRate(self):
-        # Detect the baud rate for a connected ELM32x interface
-        #
-        # On success, return True
+        """
+        Detect the baud rate for a connected ELM32x interface.
+
+        On success, return True.
+        """
 
         # For Baud testing, set ELM comms to a relatively fast timeout...
         self.__objPort.timeout = 0.5
@@ -506,7 +514,10 @@ class ELM327:
         return False
 
     def __error(self, msg):
-        # Handle fatal failures, print logger.error message, and closes serial...
+        """
+        An error is considered a fatal failures: log an error message and closes the interface.
+        """
+
         logger.error( str(msg) )
         self.close()
 
@@ -519,7 +530,7 @@ class ELM327:
     def getStatus(self):
         return self.__strStatus
 
-    def getECUSValues(self):
+    def getECUsValues(self):
         return self.__objProtocol.mapECU.values()
 
     def getProtocolName(self):
@@ -529,15 +540,15 @@ class ELM327:
         return self.__objProtocol.ELM_ID
 
     def setToLowPower(self):
-        # Enter Low Power mode
-        #
-        # This command causes the ELM327 to shut off all but essential services.
-        #
-        # The ELM327 can be woken by a message to the RS232 bus as well as a few other ways.
-        # See the Power Control section in the ELM327 datasheet for details on other ways to
-        # wake the chip.
-        #
-        # Return the status from the ELM327: 'OK' means low power mode is activated.
+        """
+        Enter Low Power mode
+
+        This command causes the ELM327 to shut off all but essential services. The ELM327 can be woken
+        by a message to the RS232 bus as well as a few other ways. See the Power Control section in the
+        ELM327 datasheet for details on other ways to wake the chip.
+
+        Return the status from the ELM327: 'OK' means low power mode is activated.
+        """
 
         if self.__strStatus == ConnectionStatus.NONE:
             logger.info("Unconnected: Cannot enter Low Power mode")
@@ -554,17 +565,15 @@ class ELM327:
         return r
 
     def setToNormalPower(self):
-        # Exit Low Power mode
-        #
-        # Send a space to trigger the RS232 to wakeup.
-        #
-        # This will send a space even when not in Low Power mode to ensure Low
-        # Power mode can be changed.
-        #
-        # See the Power Control section in the ELM327 datasheet for details on other
-        # ways to wake the chip.
-        #
-        # Return the status from the ELM327.
+        """
+        Exit Low Power mode.
+
+        Send a space to trigger the RS232 to wakeup. This will send a space even when not in Low Power
+        mode to ensure Low Power mode can be changed. See the Power Control section in the ELM327
+        datasheet for details on other ways to wake the chip.
+
+        Return the status from the ELM327.
+        """
 
         if self.__strStatus == ConnectionStatus.NONE:
             logger.info("Unconnected: Cannot exit low power")
@@ -580,7 +589,9 @@ class ELM327:
         return lines
 
     def close(self):
-        # Resets the device and sets all attributes to unconnected states.
+        """
+        Close by resetting the interface and setting all attributes to an unconnected state.
+        """
 
         self.__strStatus = ConnectionStatus.NONE
         self.__objProtocol = None
@@ -593,14 +604,13 @@ class ELM327:
             self.__objPort = None
 
     def send_and_parse(self, cmd):
-        # The send() function is used to service all Commands
-        #
-        # Sends the given command string and parses the response lines with
-        # the protocol object.
-        #
-        # An empty command string will re-trigger the previous command
-        #
-        # Return a list of Message objects
+        """
+        Sends the given command string and parses the response lines with the protocol object.
+
+        An empty command string will re-trigger the previous command.
+
+        Return a list of Message objects.
+        """
 
         if self.__strStatus == ConnectionStatus.NONE:
             logger.info("Unconnected: Cannot send and parse!")
@@ -626,12 +636,14 @@ class ELM327:
         return messages
 
     def __send(self, cmd, delay = None):
-        # An unprotected send() function
-        #
-        # This will __write() the given string, no questions asked.
-        #
-        # Return result of __read() (a list of line strings) after an optional
-        # delay until the end marker (by default, the prompt) is seen.
+        """
+        An unprotected send function
+
+        This will send a command string without any protection and get its result.
+
+        Return the result, a list of message strings, after an optional
+        delay and end marker (by default, the prompt) is seen.
+        """
 
         self.__write(cmd)
 
@@ -651,7 +663,11 @@ class ELM327:
         return astrLines
 
     def __write(self, cmd):
-        # A "low-level" function to write a string to the port
+        """
+        A "low-level" write function.
+
+        Write a command string to the port.
+        """
 
         if self.__objPort:
             cmd += b"\r"  # terminate with carriage return in accordance with ELM327 and STN11XX specifications
@@ -670,11 +686,13 @@ class ELM327:
             logger.info("Unconnected: Cannot write!")
 
     def __read(self):
-        # A "low-level" read function
-        #
-        # Accumulate characters until the end marker (by default, the prompt) is seen.
-        #
-        # Return a list of [/r/n] delimited strings
+        """
+        A "low-level" read function.
+
+        Accumulate characters until the end marker (by default, the prompt) is seen.
+
+        Return a list of response strings.
+        """
 
         if not self.__objPort:
             logger.info("Unconnected: Cannot read!")

@@ -23,13 +23,13 @@
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ############################################################################
 
-#
-# Define DTC events for sensor result window
-#
 import wx
 
 class EventDTC(wx.PyEvent):
-    # Simple event to carry arbitrary result data...
+    """
+    Event Class for Diagnostic Test Code result data.
+    """
+
     ID = 1001
 
     def __init__(self, data):

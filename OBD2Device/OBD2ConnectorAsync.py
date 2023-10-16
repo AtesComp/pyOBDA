@@ -1,32 +1,30 @@
-########################################################################
-#                                                                      #
-# python-OBD: A python OBD-II serial module derived from pyobd         #
-#                                                                      #
-# Copyright 2004 Donour Sizemore (donour@uchicago.edu)                 #
-# Copyright 2009 Secons Ltd. (www.obdtester.com)                       #
-# Copyright 2009 Peter J. Creath                                       #
-# Copyright 2016 Brendan Whitfield (brendan-w.com)                     #
-#                                                                      #
-########################################################################
-#                                                                      #
-# OBD2ConnectorAsync.py   asynchronous                                 #
-#                                                                      #
-# This file is part of python-OBD (a derivative of pyOBD)              #
-#                                                                      #
-# python-OBD is free software: you can redistribute it and/or modify   #
-# it under the terms of the GNU General Public License as published by #
-# the Free Software Foundation, either version 2 of the License, or    #
-# (at your option) any later version.                                  #
-#                                                                      #
-# python-OBD is distributed in the hope that it will be useful,        #
-# but WITHOUT ANY WARRANTY; without even the implied warranty of       #
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the        #
-# GNU General Public License for more details.                         #
-#                                                                      #
-# You should have received a copy of the GNU General Public License    #
-# along with python-OBD.  If not, see <http://www.gnu.org/licenses/>.  #
-#                                                                      #
-########################################################################
+############################################################################
+#
+# Python Onboard Diagnostics II Advanced
+#
+# OBD2ConnectorAsync.py
+#
+# Copyright 2021-2023 Keven L. Ates (atescomp@gmail.com)
+#
+# This file is part of the Onboard Diagnostics II Advanced (pyOBDA) system.
+#
+# This file was rewritten from the project "python-OBD" file "obd/asynchronous.py"
+#
+# pyOBDA is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# pyOBDA is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with pyOBDA; if not, write to the Free Software Foundation, Inc.,
+# 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+############################################################################
+
 
 import time
 import threading
@@ -39,9 +37,11 @@ logger = logging.getLogger(__name__)
 
 
 class OBD2ConnectorAsync(OBD2Connector):
-    # Class representing an OBD-II connection with it's assorted commands and sensors
-    #
-    # Specialized for asynchronous value reporting.
+    """
+    Class representing an OBD-II connection with it's assorted commands and sensors.
+
+    This class uses an asynchronous value reporting process.
+    """
 
     def __init__(self, strPort:str = "", iBaudRate:int = 0, strProtocol:str = "", bFast:bool = True,
                  fTimeout:float = 0.1, bCheckVoltage:bool = True, bStartLowPower:bool = False,
@@ -61,7 +61,10 @@ class OBD2ConnectorAsync(OBD2Connector):
         return self.__bRunning
 
     def start(self):
-        # Start the async update loop...
+        """
+        Start the async update loop.
+        """
+
         if not self.isConnected():
             logger.info("Async thread not started because no connection was made")
             return
@@ -78,7 +81,10 @@ class OBD2ConnectorAsync(OBD2Connector):
             self.__thread.start()
 
     def stop(self):
-        # Stop the async update loop...
+        """
+        Stop the async update loop.
+        """
+
         if self.__thread is not None:
             logger.info("Stopping async thread...")
             self.__bRunning = False
@@ -87,18 +93,18 @@ class OBD2ConnectorAsync(OBD2Connector):
             logger.info("Async thread stopped")
 
     def paused(self):
-        # A stub function for semantic purposes only
-        #
-        # Enables code such as:
-        #   with connection.paused() as was_running
-        #   ...
+        """
+        A stub function for semantic purposes only
+
+        Enables code such as:
+            with connection.paused() as was_running
+        """
 
         return self
 
     def __enter__(self):
         """
-            pauses the async loop,
-            while recording the old state
+        Pauses (stop) the async loop while recording the old state.
         """
         self.__bWasRunning = self.__bRunning
         self.stop()
@@ -113,83 +119,104 @@ class OBD2ConnectorAsync(OBD2Connector):
         return False  # ...don't suppress exceptions
 
     def close(self):
-        # Close the connection...
+        """
+        Close the connection.
+        """
+
         self.stop()
         super(OBD2ConnectorAsync, self).close()
 
     def watch(self, cmd, callback=None, force=False):
-        # Subscribe the given command for continuous updating
-        #
-        # Once subscribed, query() will return that command's latest value.
-        # Optional callbacks can be given which will be fired upon every new value.
+        """
+        Watch the given command for continuous updating.
+
+        When watched, query() will return that command's latest value.
+        Optional callbacks can be given which will be fired upon every new value.
+        """
 
         # Don't change the dict while the daemon thread is iterating...
         if self.__bRunning:
             logger.warning("Can't watch() while running, please use stop()")
-        # Otherwise...
-        else:
-            if not force and not self.isCmdUsable(cmd, False):
-                # self.test_cmd() will print warnings
-                return
+            return
 
-            # Create new command being watched, store the command...
-            if cmd not in self.__dictCommands:
-                logger.info("Watching command: %s" % str(cmd))
-                self.__dictCommands[cmd] = Response()  # ...give it an initial value
-                self.__dictCallbacks[cmd] = []  # ...create an empty list
+        if not force and not self.isCmdUsable(cmd, False):
+            # self.test_cmd() will print warnings
+            return
 
-            # If a callback was given, push it...
-            if hasattr(callback, "__call__") and (callback not in self.__dictCallbacks[cmd]):
-                logger.info("subscribing callback for command: %s" % str(cmd))
-                self.__dictCallbacks[cmd].append(callback)
+        # Create new command being watched, store the command...
+        if cmd not in self.__dictCommands:
+            logger.info("Watching command: %s" % str(cmd))
+            self.__dictCommands[cmd] = Response()  # ...give it an initial value
+            self.__dictCallbacks[cmd] = []  # ...create an empty list
 
-    def unwatch(self, c, callback=None):
-        # Unsubscribes a specific command (and optionally, a specific callback) from being updated
-        #
-        # If no callback is specified, all callbacks for that command are dropped.
+        # If a callback was given, push it...
+        if hasattr(callback, "__call__") and (callback not in self.__dictCallbacks[cmd]):
+            logger.info("subscribing callback for command: %s" % str(cmd))
+            self.__dictCallbacks[cmd].append(callback)
+
+    def unwatch(self, cmd, callback=None):
+        """
+        Stop watching a specific command (and optionally, a specific callback) being updated.
+
+        If no callback is specified, all callbacks for that command are dropped.
+        """
 
         # Don't change the dict while the daemon thread is iterating...
         if self.__bRunning:
             logger.warning("Can't unwatch() while running, please use stop()")
-        else:
-            logger.info("Unwatching command: %s" % str(c))
+            return
 
-            if c in self.__dictCommands:
-                # if a callback was specified, only remove the callback
-                if hasattr(callback, "__call__") and (callback in self.__dictCallbacks[c]):
-                    self.__dictCallbacks[c].remove(callback)
+        logger.info("Unwatching command: %s" % str(cmd))
 
-                    # if no more callbacks are left, remove the command entirely
-                    if len(self.__dictCallbacks[c]) == 0:
-                        self.__dictCommands.pop(c, None)
-                else:
-                    # no callback was specified, pop everything
-                    self.__dictCallbacks.pop(c, None)
-                    self.__dictCommands.pop(c, None)
+        if cmd in self.__dictCommands:
+            bRemoveCmd = True
+            # If a callback was specified...
+            if hasattr(callback, "__call__") and (callback in self.__dictCallbacks[cmd]):
+                bRemoveCmd = False
+                # ...remove the callback...
+                self.__dictCallbacks[cmd].remove(callback)
+
+                # If all callbacks have been removed...
+                if len(self.__dictCallbacks[cmd]) == 0:
+                    bRemoveCmd = True
+
+            # If complete removal is indicated...
+            if bRemoveCmd:
+                # ...remove the command from callbacks...
+                self.__dictCallbacks.pop(cmd, None)
+                    # ...remove the command entirely...
+                self.__dictCommands.pop(cmd, None)
 
     def unwatch_all(self):
-        # Unsubscribes all commands and callbacks from being updated
+        """
+        Stop watching all commands and callbacks being updated.
+        """
 
         # Don't change the dict while the daemon thread is iterating...
         if self.__bRunning:
             logger.warning("Can't unwatch_all() while running, please use stop()")
-        else:
-            logger.info("Unwatching all")
-            self.__dictCommands = {}
-            self.__dictCallbacks = {}
+            return
 
-    def query(self, c, force=False):
-        # Non-blocking query()
-        #
-        # Only commands that have been watch()ed will return valid responses
+        logger.info("Unwatching all commands")
+        self.__dictCommands = {}
+        self.__dictCallbacks = {}
 
-        if c in self.__dictCommands:
-            return self.__dictCommands[c]
+    def query(self, cmd, force=False):
+        """
+        Non-blocking query function.
+
+        Only commands that have been watched will return valid responses
+        """
+
+        if cmd in self.__dictCommands:
+            return self.__dictCommands[cmd]
         else:
             return Response()
 
     def run(self):
-        # Daemon Thread
+        """
+        The Daemon Thread for the asynchronous process.
+        """
 
         # Loop until the stop signal is received...
         while self.__bRunning:

@@ -30,17 +30,6 @@
 #
 ############################################################################
 
-from .Protocols import ECU
-from .utils import scanSerialPorts
-
-from .OBD2Connector import OBD2Connector
-from .OBD2ConnectorAsync import OBD2ConnectorAsync
-from .ConnectionStatus import ConnectionStatus
-from .CommandList import CommandList
-from .Command import Command
-from .Response import Response
-from .UnitsAndScaling import Unit
-
 import logging
 
 #

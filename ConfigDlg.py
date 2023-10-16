@@ -44,6 +44,8 @@ class ConfigDlg(wx.Dialog):
             self, parent, wx.ID_ANY, title="Configure",
             size=(400, 200), style=wx.DIALOG_ADAPTATION_STANDARD_SIZER )
 
+        self.elementCount = 0 # ...count in initialize()
+
         # Common Positions and Sizes...
         self.sizeStaticText = ( 95, 40)
         self.sizeChoiceText = (305, 40)
@@ -61,6 +63,7 @@ class ConfigDlg(wx.Dialog):
         self.checkVolts      = None
         self.panelTimeout    = None
         self.panelReconnect  = None
+        self.panelDelay      = None
         self.panelDebugLevel = None
         self.boxButtons      = None
 
@@ -69,9 +72,9 @@ class ConfigDlg(wx.Dialog):
 
         self.SetBackgroundColour('BLACK')
         self.SetForegroundColour('WHITE')
-        self.Initialize()
+        self.initialize()
 
-    def Initialize(self):
+    def initialize(self):
         # Set up to read settings from file...
         self.config = configparser.RawConfigParser()
         self.connection = Connection(None)
@@ -89,9 +92,11 @@ class ConfigDlg(wx.Dialog):
                 "Fast: ",
                 "Check: ", # Check Voltage
                 "Timeout: ",
-                "Times: ",
+                "Reconnect: ",
+                "Delay:",
                 "Debug: ",
             ]
+        self.elementCount = len( self.stateTitle )
 
         self.bIsLinux = False
         if sys.platform.startswith('win'):  # ...Windows
@@ -120,8 +125,9 @@ class ConfigDlg(wx.Dialog):
             self.connection.PROTOCOL = self.config.get("OBD", "PROTOCOL", fallback="6")
             self.connection.FAST = self.config.getboolean("OBD", "FAST", fallback=True)
             self.connection.CHECKVOLTS = self.config.getboolean("OBD", "CHECKVOLTS", fallback=True)
-            self.connection.TIMEOUT = self.config.getint("OBD", "TIMEOUT", fallback=10)
+            self.connection.TIMEOUT = self.config.getfloat("OBD", "TIMEOUT", fallback=10.0)
             self.connection.RECONNECTS = self.config.getint("OBD", "RECONNECTS", fallback=3)
+            self.connection.DELAY = self.config.getfloat("OBD", "DELAY", fallback=1.0)
             AppSettings.DEBUG_LEVEL = self.config.getint("DEBUG", "LEVEL", fallback=5)
             OBD2Device.setLogging()
 
@@ -132,7 +138,7 @@ class ConfigDlg(wx.Dialog):
                 self.panelPorts, wx.ID_ANY, 'Serial Port:',
                 size=self.sizeStaticText, style=wx.ALIGN_RIGHT | wx.ALIGN_CENTER_VERTICAL
             )
-        self.SetPorts()
+        self.setPorts()
 
         # Serial Baud Input Panel & Control...
         # 9600, 19200, 38400, 57600, 115200
@@ -218,6 +224,13 @@ class ConfigDlg(wx.Dialog):
         self.ctrlReconnect = wx.TextCtrl(
             self.panelReconnect, wx.ID_ANY, str(self.connection.RECONNECTS), self.posTextCtrl, self.sizeTextCtrl)
 
+        # Delay Input Panel & Control...
+        self.panelDelay = wx.Panel(self)
+        staticDelay = wx.StaticText(
+            self.panelDelay, wx.ID_ANY, 'Delay:', size=self.sizeStaticText, style=wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL)
+        self.ctrlDelay = wx.TextCtrl(
+            self.panelDelay, wx.ID_ANY, str(self.connection.DELAY), self.posTextCtrl, self.sizeTextCtrl)
+
         # Debug Level Input Panel & Control...
         self.panelDebugLevel = wx.Panel(self)
         staticDebugLevel = wx.StaticText(
@@ -233,10 +246,11 @@ class ConfigDlg(wx.Dialog):
         sizer.Add(self.panelPorts,      1, wx.LEFT)
         sizer.Add(self.panelBauds,      1, wx.LEFT)
         sizer.Add(self.panelProtocols,  1, wx.LEFT)
-        sizer.Add(self.checkFast,  1, wx.LEFT)
-        sizer.Add(self.checkVolts, 1, wx.LEFT)
+        sizer.Add(self.checkFast,       1, wx.LEFT)
+        sizer.Add(self.checkVolts,      1, wx.LEFT)
         sizer.Add(self.panelTimeout,    0, wx.LEFT)
         sizer.Add(self.panelReconnect,  0, wx.LEFT)
+        sizer.Add(self.panelDelay,      0, wx.LEFT)
         sizer.Add(self.panelDebugLevel, 0, wx.LEFT)
         sizer.Add(self.boxButtons,      1, wx.CENTER)
 
@@ -244,8 +258,8 @@ class ConfigDlg(wx.Dialog):
         self.SetAutoLayout(True)
         sizer.Fit(self)
 
-    def SetPorts(self):
-        self.CheckPorts()
+    def setPorts(self):
+        self.checkPorts()
         if self.choicePorts == None:
             self.choicePorts = \
                 wx.Choice(self.panelPorts, wx.ID_ANY, self.posTextCtrl, self.sizeChoiceText, self.ports)
@@ -258,14 +272,14 @@ class ConfigDlg(wx.Dialog):
             iIndex = self.ports.index(self.connection.PORTNAME)
         self.choicePorts.SetSelection(iIndex)
 
-    def CheckPorts(self):
+    def checkPorts(self):
         self.ports = OBD2Port.getPorts()
         self.bGoodPorts = True
         if (len(self.ports) <= 0) :
             self.bGoodPorts = False
             self.ports = ["No Available Devices on Ports!"]
 
-    def ProcessSettings(self, result):
+    def processSettings(self, result):
         if (result == wx.ID_OK):
             # Create sections...Frame
             if not self.config.has_section("OBD") :
@@ -338,7 +352,7 @@ class ConfigDlg(wx.Dialog):
 
             # Set and save TIMEOUT...
             iIndex += 1
-            self.connection.TIMEOUT = int(self.ctrlTimeout.GetValue())
+            self.connection.TIMEOUT = float(self.ctrlTimeout.GetValue())
             self.config.set("OBD", "TIMEOUT", self.connection.TIMEOUT)
             strTimeOut = str(self.connection.TIMEOUT)
             self.theStatusListCtrl.SetItem(iIndex, 1, strTimeOut)
@@ -351,6 +365,14 @@ class ConfigDlg(wx.Dialog):
             strReconnects = str(self.connection.RECONNECTS)
             self.theStatusListCtrl.SetItem(iIndex, 1, strReconnects)
             self.theStatusBar.SetStatusText(self.stateTitle[iIndex] + strReconnects, iIndex)
+
+            # Set and save DELAY...
+            iIndex += 1
+            self.connection.DELAY = float(self.ctrlDelay.GetValue())
+            self.config.set("OBD", "DELAY", self.connection.DELAY)
+            strDelay = str(self.connection.DELAY)
+            self.theStatusListCtrl.SetItem(iIndex, 1, strDelay)
+            self.theStatusBar.SetStatusText(self.stateTitle[iIndex] + strDelay, iIndex)
 
             # Set and save DEBUGLEVEL...
             iIndex += 1
@@ -373,9 +395,9 @@ class ConfigDlg(wx.Dialog):
                         mkdir(self.pathOBDA)
             self.config.write( open(self.fileConfig, 'w+') )
 
-    def SetStatusBar(self, theStatusBar):
+    def setStatusBar(self, theStatusBar):
         self.theStatusBar = theStatusBar
-        self.theStatusBar.SetStatusWidths([50, 58, -1, 58, -1, 96, 50, 62, 90, 68, 94])
+        self.theStatusBar.SetStatusWidths([50, 58, -1, 58, -1, 96, 50, 62, 90, 68, 90, 94])
         self.theStatusBar.SetStatusText(self.stateTitle[ 0] + AppSettings.CHAR_BALLOTX, 0)
         self.theStatusBar.SetStatusText(self.stateTitle[ 1] + self.connection.PROTOCOL, 1)
         self.theStatusBar.SetStatusText(self.stateTitle[ 2] + "Unknown", 2)
@@ -386,9 +408,10 @@ class ConfigDlg(wx.Dialog):
         self.theStatusBar.SetStatusText(self.stateTitle[ 7] + (AppSettings.CHAR_CHECK if self.connection.CHECKVOLTS else AppSettings.CHAR_BALLOTX), 7)
         self.theStatusBar.SetStatusText(self.stateTitle[ 8] + str(self.connection.TIMEOUT), 8)
         self.theStatusBar.SetStatusText(self.stateTitle[ 9] + str(self.connection.RECONNECTS), 9)
-        self.theStatusBar.SetStatusText(self.stateTitle[10] + str(AppSettings.DEBUG_LEVEL), 10)
+        self.theStatusBar.SetStatusText(self.stateTitle[10] + str(self.connection.DELAY), 10)
+        self.theStatusBar.SetStatusText(self.stateTitle[11] + str(AppSettings.DEBUG_LEVEL), 11)
 
-    def SetStatusListCtrl(self, theStatusListCtrl):
+    def setConnectionListCtrl(self, theStatusListCtrl):
         self.theStatusListCtrl = theStatusListCtrl
         self.theStatusListCtrl.InsertColumn(0, "Description", format=wx.LIST_FORMAT_RIGHT, width=150)
         self.theStatusListCtrl.InsertColumn(1, "Value")
@@ -403,9 +426,10 @@ class ConfigDlg(wx.Dialog):
         self.theStatusListCtrl.Append(["Check Voltage:", self.connection.CHECKVOLTS]) #  7
         self.theStatusListCtrl.Append(["Timeout:",       self.connection.TIMEOUT])    #  8
         self.theStatusListCtrl.Append(["Reconnects:",    self.connection.RECONNECTS]) #  9
-        self.theStatusListCtrl.Append(["Debug:",         AppSettings.DEBUG_LEVEL])    # 10
+        self.theStatusListCtrl.Append(["Delay:",         self.connection.DELAY])      # 10
+        self.theStatusListCtrl.Append(["Debug:",         AppSettings.DEBUG_LEVEL])    # 11
 
-    def UpdateStatus(self, data):
+    def updateConnection(self, data):
         self.theStatusListCtrl.SetItem(data[0], data[1], data[2])
         self.theStatusBar.SetStatusText(self.stateTitle[data[0]] + data[2], data[0])
 

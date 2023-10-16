@@ -27,8 +27,11 @@ import wx
 
 from wx.lib.mixins.listctrl import ListCtrlAutoWidthMixin
 
-# An extended wx.ListCtrl class that auto-resizes the column boxes on resize...
 class ListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin):
+    """
+    An extended wx.ListCtrl Class that auto-resizes the column boxes on resize...
+    """
+
     def __init__(
         self, parent, id, pos = wx.DefaultPosition,
         size = wx.DefaultSize, style = 0):

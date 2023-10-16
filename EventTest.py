@@ -29,7 +29,10 @@
 import wx
 
 class EventTest(wx.PyEvent):
-    # Simple event to carry arbitrary result data...
+    """
+    Event Class for Test result data.
+    """
+
     ID = 1003
 
     def __init__(self, data):

@@ -1,0 +1,4 @@
+# PyOBDA Requirements
+wxPython
+pyserial
+Pint

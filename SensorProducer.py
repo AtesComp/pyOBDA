@@ -24,6 +24,7 @@
 ############################################################################
 
 import wx
+import time
 import threading
 from typing import Callable
 
@@ -34,8 +35,8 @@ from SensorManager import SensorManager
 from EventHandler import EventHandler
 from EventDebug import EventDebug
 from EventDTC import EventDTC
-from EventResult import EventResult
-from EventStatus import EventStatus
+from EventSensor import EventSensor
+from EventConnection import EventConnection
 from EventTest import EventTest
 from OBD2Device.Codes import Codes
 
@@ -45,8 +46,11 @@ class ThreadCommands:
     DTC_Load   =  2 # ...Get DTCs
     Disconnect = -1 # ...Disconnect from vehicle's ECU
 
-# A Sensor Producer class to produce sensor managers...
 class SensorProducer(threading.Thread):
+    """
+    The Sensor Producer Class to produce sensor managers.
+    """
+
     def __init__(self, connection: Connection, notebook: wx.Notebook, events: EventHandler, funcSetTestIgnition: Callable):
         super().__init__()
         self.connection = Connection(connection) # ...copy
@@ -77,19 +81,19 @@ class SensorProducer(threading.Thread):
 
     def startProduction(self):
         wx.PostEvent( self.events, EventDebug( [2, "Starting Sensor Connection..."] ) )
-        wx.PostEvent( self.events, EventStatus( [0, 1, AppSettings.CHAR_QMARK] ) )
+        wx.PostEvent( self.events, EventConnection( [0, 1, AppSettings.CHAR_QMARK] ) )
         self.initCommunication()
         if self.PORT.bConnected == False:  # ...cannot connect, exit thread
             wx.PostEvent( self.events, EventDebug( [1, "ERROR: Connection Failed!"] ) )
             # Signal app that communication failed...
-            wx.PostEvent( self.events, EventStatus( [0, 1, AppSettings.CHAR_CROSSX] ) )
-            wx.PostEvent( self.events, EventStatus( [-1, -1, "SIGNAL: Failed"] ) ) # ...signal connection failure to app
+            wx.PostEvent( self.events, EventConnection( [0, 1, AppSettings.CHAR_CROSSX] ) )
+            wx.PostEvent( self.events, EventConnection( [-1, -1, "SIGNAL: Failed"] ) ) # ...signal connection failure to app
             return
 
         wx.PostEvent( self.events, EventDebug( [3, "  Connected"] ) )
-        wx.PostEvent( self.events, EventStatus( [0, 1, AppSettings.CHAR_CHECK] ) )
-        wx.PostEvent( self.events, EventStatus( [2, 1, self.PORT.strELMver] ) )
-        wx.PostEvent( self.events, EventStatus( [3, 1, self.PORT.strELMvolts] ) )
+        wx.PostEvent( self.events, EventConnection( [0, 1, AppSettings.CHAR_CHECK] ) )
+        wx.PostEvent( self.events, EventConnection( [2, 1, self.PORT.strELMver] ) )
+        wx.PostEvent( self.events, EventConnection( [3, 1, self.PORT.strELMvolts] ) )
         statePrev = -1
         stateCurr = -1
         while self.iThreadControl != ThreadCommands.Disconnect:  # ...thread loop, not disconnecting...
@@ -120,7 +124,7 @@ class SensorProducer(threading.Thread):
                     if self.active[self.iCurrSensorsPage][iIndex]:
                         tupSensorInfo = self.PORT.getSensorInfo(self.iCurrSensorsPage, iIndex)
                         listResponse = [self.iCurrSensorsPage, iIndex, 2, "%s (%s)" % (tupSensorInfo[1], tupSensorInfo[2])]
-                        wx.PostEvent( self.events, EventResult(listResponse) )
+                        wx.PostEvent( self.events, EventSensor(listResponse) )
 
             elif stateCurr == 3:  # ...DTC Page
                 if statePrev != stateCurr :
@@ -150,18 +154,21 @@ class SensorProducer(threading.Thread):
                         break
                     self.iThreadControl = ThreadCommands.Null
 
-            elif stateCurr == 4:  # ...Trace Page
+            elif stateCurr == 4:  # ...Trace (Debug) Page
                 if statePrev != stateCurr :
                     wx.PostEvent( self.events, EventDebug( [2, "Trace Page..."] ) )
                 # View the trace log...
 
             else: # ...everything else
                 if statePrev != stateCurr :
+                    # We should never see this message...
                     wx.PostEvent( self.events, EventDebug( [2, "ERROR Page..."] ) )
-                    # We should never see this message
 
             if self.iThreadControl == ThreadCommands.Disconnect:  # ...end thread
                 break
+
+            # Delay the loop iteration based on the Connection configured DELAY...
+            time.sleep(self.connection.DELAY if self.connection.DELAY > 1.0 else 1.0)
 
     def initCommunication(self):
         self.PORT = OBD2Port(self.connection, self.events, self.getSensorPage, self.setTestIgnition)
@@ -184,9 +191,9 @@ class SensorProducer(threading.Thread):
                 self.active[iSensorGroup].append(bSupport)
 
                 if bSupport :
-                    wx.PostEvent( self.events, EventResult([iSensorGroup, iIndex, 0, AppSettings.CHAR_CHECK] ) )
+                    wx.PostEvent( self.events, EventSensor([iSensorGroup, iIndex, 0, AppSettings.CHAR_CHECK] ) )
                 else:
-                    wx.PostEvent( self.events, EventResult([iSensorGroup, iIndex, 0, AppSettings.CHAR_BALLOTX] ) )
+                    wx.PostEvent( self.events, EventSensor([iSensorGroup, iIndex, 0, AppSettings.CHAR_BALLOTX] ) )
 
         wx.PostEvent( self.events, EventDebug( [3, "  Sensors marked for support..."] ) )
 
@@ -196,9 +203,9 @@ class SensorProducer(threading.Thread):
         if self.PORT != None:
             self.PORT.close()
             self.PORT = None
-        wx.PostEvent( self.events, EventStatus([0, 1, AppSettings.CHAR_BALLOTX] ) )
-        wx.PostEvent( self.events, EventStatus([2, 1, "Unknown"] ) )
-        wx.PostEvent( self.events, EventStatus([3, 1, "---"] ) )
+        wx.PostEvent( self.events, EventConnection([0, 1, AppSettings.CHAR_BALLOTX] ) )
+        wx.PostEvent( self.events, EventConnection([2, 1, "Unknown"] ) )
+        wx.PostEvent( self.events, EventConnection([3, 1, "---"] ) )
 
     def setIDOff(self, iID):
         wx.PostEvent( self.events, EventDebug( [2, "Setting Sensor ID OFF"] ) )
@@ -221,5 +228,3 @@ class SensorProducer(threading.Thread):
     def setAllIDsOn(self):
         for iID in range(0, len(self.active)):
             self.setIDOff(iID)
-
-# ...end Class SensorProducer

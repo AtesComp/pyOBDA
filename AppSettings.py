@@ -23,7 +23,7 @@
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ############################################################################
 
-VERSION = "1.5.0"
+VERSION = "1.5.1"
 
 ID_ABOUT  = 101
 ID_EXIT   = 110
@@ -57,6 +57,30 @@ STR_HELP_TEXT = \
     "Onboard Diagnostics II Advanced:  pyOBDA  Version " + VERSION + "\n" + \
     "  (C) 2021-2023 Keven L. Ates (atescomp@gmail.com)\n" + \
     "\n" + \
+    "Diagnostic Trouble Codes: Get DTC / Clear DTC\n" +\
+    "=============================================\n" + \
+    "While each vehicle type varies for OBD II operations, best practices suggest\n" + \
+    "that a vehicle should be ON, but NOT running, when examining and clearing codes.\n" + \
+    "\n" + \
+    "System Tests and Sensor Reports: A, B, and C\n" + \
+    "=============================================\n" + \
+    "If sensor reports are desired, ensure the vehicle is runnning to obtain real\n" + \
+    "time results.\n" + \
+    "\n" + \
+    "Configuration Items:\n" + \
+    "=============================================\n" + \
+    "The OBD II configuration items are:\n" + \
+    "  PORT - a computer port connecting the ELM device\n" + \
+    "  BAUD - the Baud Rate used to communicate using the port\n" + \
+    "  PROTOCOL - an ELM protocol used to communicate with the vehicle\n" + \
+    "  FAST - support the ELM fast command response\n" + \
+    "  CHECKVOLTS - Validate the ELM connection voltage\n" + \
+    "  TIMEOUT - the (fractional) seconds to wait for the connection response\n" + \
+    "  RECONNECTS - the number of times to try a connection before giving up\n" + \
+    "  DELAY - the (fractional) seconds to wait between page updates (1.0 sec min)\n" + \
+    "Debug configuration items are:\n" + \
+    "  LEVEL - a debugging verbosity level from 0 (None) to 5 (most verbose)\n" + \
+    "\n" + \
     "To setup a configuration for pyOBDA:\n" + \
     "  Linux: create a config file in your HOME directory at .config/pyobda/\n" + \
     "    ~/.config/pyobda/config\n" + \
@@ -65,18 +89,20 @@ STR_HELP_TEXT = \
     "    <path_to_pyOBDA>\\pyobda\\pyobda.ini\n" + \
     "\n" + \
     "In the config file, place similar following text with your settings:\n" + \
-    "----------------------------------------\n" + \
+    "---------------------------------------------\n" + \
     "[OBD]\n" + \
     "PORT=/dev/ttyUSB0\n" + \
     "BAUD=115200\n" + \
     "PROTOCOL=6\n" + \
     "FAST=True\n" + \
     "CHECKVOLTS=True\n" + \
-    "TIMEOUT=2\n" + \
+    "TIMEOUT=2.0\n" + \
     "RECONNECTS=5\n" + \
+    "DELAY=1.0\n" + \
     "[DEBUG]\n" + \
     "LEVEL=1\n" + \
-    "----------------------------------------\n" + \
+    "---------------------------------------------\n" + \
+    "\n" + \
     "\n" + \
     "Based on PyOBD and python-obd\n" + \
     "  PyOBD:\n" + \

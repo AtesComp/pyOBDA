@@ -27,16 +27,17 @@
 
 
 class Codes:
+    """
+    The Codes Class contains many OBD-II codes.
+    """
 
-    # Type Codes
-
+    # Ignition Type Codes
     IgnitionType = [
         "spark",
         "compression",
     ]
 
     # Test Codes
-
     class Test:
         SystemCode = [
             "DTCs:",
@@ -98,7 +99,6 @@ class Codes:
         ]
 
     # Status Codes
-
     class Status:
         Fuel = [
             "Open loop due to insufficient engine temperature",
@@ -116,7 +116,6 @@ class Codes:
         ]
 
     # Compliance Codes
-
     Compliance = [
         "Undefined",
         "OBD-II California Air Resources Board (CARB)",
@@ -155,7 +154,6 @@ class Codes:
     ]
 
     # Fuel Type Codes
-
     FuelType = [
         "Not available",
         "Gasoline",
@@ -183,8 +181,7 @@ class Codes:
         "Bifuel running diesel",
     ]
 
-    # Diagnostic Trouble Codes (DTC)
-
+    # Diagnostic Trouble Code Classes
     CodeClasses = {
         "P00XX": "Fuel and Air Metering and Auxiliary Emission Controls",
         "P01XX": "Fuel and Air Metering",
@@ -242,6 +239,7 @@ class Codes:
         "U3XXX": "Control Module and Power Distribution Systems",
     }
 
+    # Diagnostic Trouble Codes (DTCs)
     Codes = {
         "P0001": "Fuel Volume Regulator Control Circuit/Open",
         "P0002": "Fuel Volume Regulator Control Circuit Range/Performance",

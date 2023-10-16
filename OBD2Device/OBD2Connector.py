@@ -43,6 +43,11 @@ logger = logging.getLogger(__name__)
 # Class: OBD II Connector
 #
 class OBD2Connector(object):
+    """
+    Class representing an OBD-II connection with it's assorted commands and sensors.
+
+    This class uses a synchronous value reporting process.
+    """
 
     def __init__(self, strPort:str = "", iBaudRate:int = 0, strProtocol:str = "", bFast:bool = True,
                  fTimeout:float = 0.1, bCheckVoltage:bool = True, bStartLowPower:bool = False):
@@ -68,7 +73,9 @@ class OBD2Connector(object):
 
     def __connect(self, strPort, iBaudRate, strProtocol, bCheckVoltage,
                   bStartLowPower):
-        # Attempt to connect to an ELM327 device.
+        """
+        Attempt to connect to an ELM327 device.
+        """
 
         if strPort is None :
             logger.info("Scanning for serial ports...")
@@ -101,7 +108,9 @@ class OBD2Connector(object):
             self.close()
 
     def __loadCmds(self):
-        # Queries for available PIDs, sets their support status, and compiles a list of command objects
+        """
+        Queries for available PIDs, sets their support status, and compiles a list of command objects.
+        """
 
         if self.status() != ConnectionStatus.VEHICLE :
             logger.warning("No Connection: Cannot load commands!")
@@ -139,19 +148,36 @@ class OBD2Connector(object):
         logger.info("Finished querying with %d commands supported." % len(self.listCommandsSupported))
 
     def __setHeader(self, header):
+        """
+        Set the default header for commands.
+        """
+
+        # If this header is also the last header...
         if header == self.__baLastHeader:
-            return
-        r = self.interface.send_and_parse(b'AT SH ' + header + b' ')
-        if not r:
+            return # ...nothing to do
+
+        # Set the new header...
+        listMsg = self.interface.send_and_parse(b'AT SH ' + header + b' ')
+
+        # If there is no result...
+        if not listMsg:
+            # ...log and return empty response...
             logger.info("Set Header ('AT SH %s') did not return data", header)
             return Response()
-        if "\n".join([m.raw() for m in r]) != "OK":
+
+        # If the response is NOT OK...
+        if "".join( [msg.raw() for msg in listMsg] ) != "OK":
+            # ...log and return empty response...
             logger.info("Set Header ('AT SH %s') did not return 'OK'", header)
             return Response()
+
+        # Set the new header as the last header...
         self.__baLastHeader = header
 
     def close(self):
-        # Closes the connection and clears supported commands
+        """
+        Closes the connection and clears supported commands.
+        """
 
         self.listCommandsSupported = set()
 
@@ -162,77 +188,104 @@ class OBD2Connector(object):
             self.interface = None
 
     def status(self):
-        # Return the OBD connection status
+        """
+        Return the OBD connection status.
+        """
+
         if self.interface is None :
             return ConnectionStatus.NONE
         else :
             return self.interface.getStatus()
 
     def setLowPower(self):
-        # Enter Low Power mode
+        """
+        Enter Low Power mode.
+        """
+
         if self.interface is None :
             return ConnectionStatus.NONE
         else :
             return self.interface.setToLowPower()
 
     def setNormalPower(self):
-        # Exit Low Power mode
+        """
+        Exit Low Power mode.
+        """
+
         if self.interface is None :
             return ConnectionStatus.NONE
         else :
             return self.interface.setToNormalPower()
 
-    # not sure how useful this would be
+    # TODO: Review for usefulness
+    def getECUs(self) -> list:
+        """
+        Get a list of ECUs in the vehicle.
+        """
 
-    # def ecus(self):
-    #     """ returns a list of ECUs in the vehicle """
-    #     if self.interface is None:
-    #         return []
-    #     else:
-    #         return self.interface.ecus()
+        if self.interface is None:
+            return []
+        else:
+            return list( self.interface.getECUsValues() )
 
     def getProtocolName(self):
-        # Return the name of the protocol being used by the ELM327
+        """
+        Return the name of the protocol being used by the ELM327.
+        """
+
         if self.interface is None :
             return ""
         else :
             return self.interface.getProtocolName()
 
     def getProtocolID(self):
-        # Return the ID of the protocol being used by the ELM327
+        """
+        Return the ID of the protocol being used by the ELM327.
+        """
+
         if self.interface is None :
             return ""
         else :
             return self.interface.getProtocolID()
 
     def getPortName(self):
-        # Return the name of the currently connected port
+        """
+        Return the name of the currently connected port.
+        """
+
         if self.interface is not None :
             return self.interface.getPortName()
         else :
             return ""
 
     def isConnected(self):
-        # Return a boolean indicating a connection to the vehicle
-        #
-        # NOTE: This function returns False when:
-        #       OBDDevice.status == OBD2ConnectionStatus.ELM
+        """
+        Is a vehicle connected?
+
+        NOTE: This function returns False when the connector's status indicates ConnectionStatus.VEHICLE (i.e., "Vehicle Connected")
+        """
 
         return self.status() == ConnectionStatus.VEHICLE
 
     def printCmds(self):
-        # Utility function meant for working in interactive mode
-        #   Prints all commands supported by the vehicle.
+        """
+        Utility function for connection working in interactive mode. Prints all commands supported by the vehicle.
+        """
 
         for cmd in self.listCommandsSupported :
             print(str(cmd))
 
     def isCmdSupported(self, cmd):
-        # Is the given command supported by the vehicle?
+        """
+        Is a command supported by the vehicle?
+        """
+
         return cmd in self.listCommandsSupported
 
     def isCmdUsable(self, cmd, bWarn=True):
-        # Is a command usable without using force=True.
+        """
+        Is a command usable without using force?
+        """
 
         # Test if the command is supported...
         if not self.isCmdSupported(cmd) :
@@ -249,7 +302,9 @@ class OBD2Connector(object):
         return True
 
     def query(self, cmd:Command, bForce=False):
-        # Send command to the vehicle and protect against sending unsupported commands.
+        """
+        Send command to the vehicle with protection against unsupported commands.
+        """
 
         respNull = Response()
         if self.status() == ConnectionStatus.NONE :
@@ -283,7 +338,10 @@ class OBD2Connector(object):
         return cmd(messages)  # ...compute a response object
 
     def __buildCmdString(self, cmd:Command):
-        # Assembles the appropriate command string
+        """
+        Assemble the appropriate command string.
+        """
+
         bytesCmd = cmd.bsCmdID
 
         # If we know the number of frames that this command returns,
