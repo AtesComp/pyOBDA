@@ -72,3 +72,56 @@ Modern Python uses Virtual Environments to protect your system. See [Python3 ven
     ${HOME}/venv/pyobda/bin/activate
     ./pyobda.py
 ```
+
+### 3. Configuration
+
+#### Configuration Items
+
+pyOBDA uses a configuration file to manage it connection and operation.
+
+The OBD II configuration items are:
+
+ * **PORT** - a computer port connecting the ELM device
+ * **BAUD** - the Baud Rate used to communicate using the port
+ * **PROTOCOL** - an ELM protocol used to communicate with the vehicle
+ * **FAST** - support the ELM fast command response
+ * **CHECKVOLTS** - validate the ELM connection voltage
+ * **TIMEOUT** - the (fractional) seconds to wait for the connection response
+ * **RECONNECTS** - the number of times to try a connection before giving up
+ * **DELAY** - the (fractional) seconds to wait between page updates for sensors (1.0 sec min)
+
+Debug configuration items are:
+
+ * **LEVEL** - a debugging verbosity level from 0 (None) to 5 (most verbose)
+
+#### OS Configuration File
+
+For your OS, edit the file in the following locations:
+ * Linux: create a config file in the pyOBDA configuration directory
+```shell
+    ~/.config/pyobda/config
+```
+ * Mac: same as Linux
+
+ * Windows: create a pyobda.ini file in the pyOBDA program directory
+```shell
+    <path_to_pyOBDA>\pyobda\pyobda.ini
+```
+
+In the config file, place similar following text with your settings:
+```ini
+    [OBD]
+    PORT = /dev/ttyUSB0
+    BAUD = 115200
+    PROTOCOL = 6
+    FAST = True
+    CHECKVOLTS = True
+    TIMEOUT = 2.0
+    RECONNECTS = 5
+    DELAY = 1.0
+
+    [DEBUG]
+    LEVEL = 1
+```
+
+All done! Have fun!

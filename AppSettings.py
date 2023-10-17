@@ -23,7 +23,7 @@
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ############################################################################
 
-VERSION = "1.5.1"
+VERSION = "1.5.2"
 
 ID_ABOUT  = 101
 ID_EXIT   = 110
@@ -74,19 +74,19 @@ STR_HELP_TEXT = \
     "  BAUD - the Baud Rate used to communicate using the port\n" + \
     "  PROTOCOL - an ELM protocol used to communicate with the vehicle\n" + \
     "  FAST - support the ELM fast command response\n" + \
-    "  CHECKVOLTS - Validate the ELM connection voltage\n" + \
+    "  CHECKVOLTS - validate the ELM connection voltage\n" + \
     "  TIMEOUT - the (fractional) seconds to wait for the connection response\n" + \
     "  RECONNECTS - the number of times to try a connection before giving up\n" + \
-    "  DELAY - the (fractional) seconds to wait between page updates (1.0 sec min)\n" + \
+    "  DELAY - the (fractional) seconds to wait between page updates for sensors (1.0 sec min)\n" + \
     "Debug configuration items are:\n" + \
     "  LEVEL - a debugging verbosity level from 0 (None) to 5 (most verbose)\n" + \
     "\n" + \
     "To setup a configuration for pyOBDA:\n" + \
-    "  Linux: create a config file in your HOME directory at .config/pyobda/\n" + \
+    "  Linux: create a config file in the pyOBDA configuration directory\n" + \
     "    ~/.config/pyobda/config\n" + \
     "  Mac: same as Linux\n" + \
     "  Windows: create a pyobda.ini file in the pyOBDA program directory\n" + \
-    "    <path_to_pyOBDA>\\pyobda\\pyobda.ini\n" + \
+    "    <path_to_app>\\pyobda\\pyobda.ini\n" + \
     "\n" + \
     "In the config file, place similar following text with your settings:\n" + \
     "---------------------------------------------\n" + \
