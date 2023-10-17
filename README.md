@@ -49,7 +49,7 @@ After installing the above requirements, "install" pyOBDA on your system.
 
 Download the release and uncompress it. Copy the uncompressed directory to wherever you want (i.e. /opt, /usr/local).
 
-To use software, in the directory, run **python3 pyobda.py**. If you're using MacOSX, run **pythonw pyobda.py**.
+To use software, in the directory, run `python3 pyobda.py`. If you're using MacOSX, run `pythonw pyobda.py`.
 ```shell
     cd to/dir/pyobda
     ./pyobda.py
