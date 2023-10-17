@@ -27,6 +27,10 @@
 
 
 import logging
+import errno
+import glob
+import sys
+import serial
 
 from .ELM327 import ELM327
 from .CommandList import CommandList
@@ -34,7 +38,7 @@ from .Command import Command
 from .ConnectionStatus import ConnectionStatus
 from .Response import Response
 from .Protocols.ECU import ECU
-from .utils import scanSerialPorts
+
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +52,53 @@ class OBD2Connector(object):
 
     This class uses a synchronous value reporting process.
     """
+
+    @classmethod
+    def __isPortAvailable(cls, strPort : str):
+        # Is a port available?
+        try:
+            serialPort = serial.Serial(strPort)
+            serialPort.close()  # ...explicit close
+            # Available...
+            return True
+        except serial.SerialException:
+            pass
+        except OSError as e:
+            # If NOT a No Entry (File or Directory) error...
+            if e.errno != errno.ENOENT:
+                # ...throw that error...
+                raise e
+        # Otherwise, not available...
+        return False
+
+    @classmethod
+    def scanSerialPorts(cls):
+        """
+        Scan for available serial ports.
+        """
+
+        # Get all possible ports...
+        listPortsPossible : list[str]  = []
+        if sys.platform.startswith('linux') or sys.platform.startswith('cygwin'):
+            listPortsPossible += glob.glob("/dev/rfcomm[0-9]*")
+            listPortsPossible += glob.glob("/dev/ttyUSB[0-9]*")
+        elif sys.platform.startswith('win'):
+            listPortsPossible += ["\\.\COM%d" % i for i in range(256)]
+        elif sys.platform.startswith('darwin'):
+            listPortsExclude = [
+                '/dev/tty.Bluetooth-Incoming-Port',
+                '/dev/tty.Bluetooth-Modem'
+            ]
+            listPortsPossible += [port for port in glob.glob('/dev/tty.*') if port not in listPortsExclude]
+        #listPortsPossible += glob.glob('/dev/pts/[0-9]*') # for OBDSim?
+
+        listPortsAvailable : list[str] = []
+        for strPort in listPortsPossible:
+            if cls.__isPortAvailable(strPort):
+                listPortsAvailable.append(strPort)
+
+        return listPortsAvailable
+
 
     def __init__(self, strPort:str = "", iBaudRate:int = 0, strProtocol:str = "", bFast:bool = True,
                  fTimeout:float = 0.1, bCheckVoltage:bool = True, bStartLowPower:bool = False):
@@ -79,7 +130,7 @@ class OBD2Connector(object):
 
         if strPort is None :
             logger.info("Scanning for serial ports...")
-            astrPortNames = scanSerialPorts()
+            astrPortNames = self.scanSerialPorts()
             logger.info("Available ports: " + str(astrPortNames))
 
             if not astrPortNames:

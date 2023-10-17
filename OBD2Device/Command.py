@@ -31,7 +31,7 @@ from typing import Callable
 from .Protocols.ECU import ECU
 from .Protocols.Message import Message
 from .Response import Response
-from .utils import *
+from .Utility import Utility
 
 import logging
 
@@ -74,7 +74,7 @@ class Command:
         The mode method retrieves the mode contained in the 1st two command bytes.
         """
 
-        if len(self.bsCmdID) >= 2 and isHex( self.bsCmdID.decode() ):
+        if len(self.bsCmdID) >= 2 and Utility.isHex( self.bsCmdID.decode() ):
             return int(self.bsCmdID[:2], 16)
         else:
             return None
@@ -85,7 +85,7 @@ class Command:
         The pid method retrieves the PID, if present, contained in the 2nd two command bytes.
         """
 
-        if len(self.bsCmdID) > 2 and isHex( self.bsCmdID.decode() ):
+        if len(self.bsCmdID) > 2 and Utility.isHex( self.bsCmdID.decode() ):
             return int(self.bsCmdID[2:], 16)
         else:
             return None

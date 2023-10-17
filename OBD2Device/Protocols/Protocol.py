@@ -32,7 +32,8 @@ from .Frame import Frame
 from .ECU import ECU
 from .Message import Message
 
-from OBD2Device.utils import isHex, BitArray
+from OBD2Device.Utility import Utility
+from OBD2Device.BitArray import BitArray
 
 logger = logging.getLogger(__name__)
 
@@ -111,7 +112,7 @@ class Protocol(object):
 
         for strLine in listRespLines:
             strLineCondensed = strLine.replace(' ', '')
-            if isHex(strLineCondensed):
+            if Utility.isHex(strLineCondensed):
                 linesOBD.append(strLineCondensed)
             else:
                 linesNonOBD.append(strLine)  # ...original, un-scrubbed line

@@ -28,7 +28,7 @@
 
 import time
 
-from .UnitsAndScaling import Unit
+from .UnitAndScale import Unit
 
 
 # Response class for OBD2 Commands

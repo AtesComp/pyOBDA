@@ -1,44 +1,42 @@
-########################################################################
-#                                                                      #
-# python-OBD: A python OBD-II serial module derived from pyobd         #
-#                                                                      #
-# Copyright 2004 Donour Sizemore (donour@uchicago.edu)                 #
-# Copyright 2009 Secons Ltd. (www.obdtester.com)                       #
-# Copyright 2009 Peter J. Creath                                       #
-# Copyright 2016 Brendan Whitfield (brendan-w.com)                     #
-#                                                                      #
-########################################################################
-#                                                                      #
-# decoders.py                                                          #
-#                                                                      #
-# This file is part of python-OBD (a derivative of pyOBD)              #
-#                                                                      #
-# python-OBD is free software: you can redistribute it and/or modify   #
-# it under the terms of the GNU General Public License as published by #
-# the Free Software Foundation, either version 2 of the License, or    #
-# (at your option) any later version.                                  #
-#                                                                      #
-# python-OBD is distributed in the hope that it will be useful,        #
-# but WITHOUT ANY WARRANTY; without even the implied warranty of       #
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the        #
-# GNU General Public License for more details.                         #
-#                                                                      #
-# You should have received a copy of the GNU General Public License    #
-# along with python-OBD.  If not, see <http://www.gnu.org/licenses/>.  #
-#                                                                      #
-########################################################################
+############################################################################
+#
+# Python Onboard Diagnostics II Advanced
+#
+# CommandList.py
+#
+# Copyright 2021-2023 Keven L. Ates (atescomp@gmail.com)
+#
+# This file is part of the Onboard Diagnostics II Advanced (pyOBDA) system.
+#
+# This file was rewritten from the project "python-OBD" file "obd/decoders.py"
+#
+# pyOBDA is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# pyOBDA is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with pyOBDA; if not, write to the Free Software Foundation, Inc.,
+# 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+############################################################################
+
 
 import functools
 
-from .UnitsAndScaling import Unit, UAS_IDS
+from .BitArray import BitArray
+from .UnitAndScale import Unit, UAS_IDS
 from .Status import Status
 from .StatusTest import StatusTest
 from .Monitor import Monitor
 from .MonitorTest import MonitorTest
 from .Codes import Codes
 from .Protocols.Message import Message
-
-from .utils import *
+from .Utility import Utility
 
 import logging
 
@@ -94,12 +92,12 @@ def decodeUAS(listMessages : list[Message], iID):
 
 """
 General sensor decoders
-Return pint Quantities
+Return Pint Quantities
 """
 
 def count(listMessages : list[Message]):
     baMessage = listMessages[0].baData[2:]
-    iCount = convertBEBytesToInt(baMessage)
+    iCount = Utility.convertBEBytesToInt(baMessage)
     return iCount * Unit.count
 
 # 0 to 100 %
@@ -121,7 +119,7 @@ def percentCentered(listMessages : list[Message]):
 # -40 to 215 C
 def temperature(listMessages : list[Message]):
     baMessage = listMessages[0].baData[2:]
-    iTemperature = convertBEBytesToInt(baMessage)
+    iTemperature = Utility.convertBEBytesToInt(baMessage)
     iTemperature = iTemperature - 40
     return Unit.Quantity(iTemperature, Unit.celsius)  # non-multiplicative unit
 
@@ -129,7 +127,7 @@ def temperature(listMessages : list[Message]):
 # -128 to 128 mA
 def currentCentered(listMessages : list[Message]):
     baMessage = listMessages[0].baData[2:]
-    iCurrent = convertBEBytesToInt(baMessage[2:4])
+    iCurrent = Utility.convertBEBytesToInt(baMessage[2:4])
     iCurrent = (iCurrent / 256.0) - 128
     return iCurrent * Unit.milliampere
 
@@ -144,7 +142,7 @@ def sensorVoltage(listMessages : list[Message]):
 # 0 to 8 volts
 def sensorVoltageBig(listMessages : list[Message]):
     baMessage = listMessages[0].baData[2:]
-    iVoltage = convertBEBytesToInt(baMessage[2:4])
+    iVoltage = Utility.convertBEBytesToInt(baMessage[2:4])
     iVoltage = (iVoltage * 8.0) / 65535
     return iVoltage * Unit.volt
 
@@ -167,8 +165,8 @@ def pressure(listMessages : list[Message]):
 # -8192 to 8192 Pa
 def pressureEvap(listMessages : list[Message]):
     baMessage = listMessages[0].baData[2:]
-    iPressureHigh = calc2sCompliment(baMessage[0], 8)
-    iPressureLow  = calc2sCompliment(baMessage[1], 8)
+    iPressureHigh = Utility.calc2sCompliment(baMessage[0], 8)
+    iPressureLow  = Utility.calc2sCompliment(baMessage[1], 8)
     iPressure = ((iPressureHigh * 256.0) + iPressureLow) / 4.0
     return iPressure * Unit.pascal
 
@@ -176,7 +174,7 @@ def pressureEvap(listMessages : list[Message]):
 # 0 to 327.675 kPa
 def pressureEvapAbs(listMessages : list[Message]):
     baMessage = listMessages[0].baData[2:]
-    iPressure = convertBEBytesToInt(baMessage)
+    iPressure = Utility.convertBEBytesToInt(baMessage)
     iPressure = iPressure / 200.0
     return iPressure * Unit.kilopascal
 
@@ -184,7 +182,7 @@ def pressureEvapAbs(listMessages : list[Message]):
 # -32767 to 32768 Pa
 def pressureEvapAlt(listMessages : list[Message]):
     baMessage = listMessages[0].baData[2:]
-    iPressure = convertBEBytesToInt(baMessage)
+    iPressure = Utility.convertBEBytesToInt(baMessage)
     iPressure = iPressure - 32767
     return iPressure * Unit.pascal
 
@@ -200,7 +198,7 @@ def timingAdvance(listMessages : list[Message]):
 # -210 to 301 degrees
 def timingInject(listMessages : list[Message]):
     baMessage = listMessages[0].baData[2:]
-    iTiming = convertBEBytesToInt(baMessage)
+    iTiming = Utility.convertBEBytesToInt(baMessage)
     iTiming = (iTiming - 26880) / 128.0
     return iTiming * Unit.degree
 
@@ -216,7 +214,7 @@ def maxMAF(listMessages : list[Message]):
 # 0 to 3212 Liters/hour
 def getFuelRate(listMessages : list[Message]):
     baMessage = listMessages[0].baData[2:]
-    iFuelRate = convertBEBytesToInt(baMessage)
+    iFuelRate = Utility.convertBEBytesToInt(baMessage)
     iFuelRate = iFuelRate * 0.05
     return iFuelRate * Unit.liters_per_hour
 
@@ -253,7 +251,7 @@ def statusAuxInput(listMessages : list[Message]):
 # 0 to 25700 %
 def getAbsoluteLoad(listMessages : list[Message]):
     baMessage = listMessages[0].baData[2:]
-    iLoad = convertBEBytesToInt(baMessage)
+    iLoad = Utility.convertBEBytesToInt(baMessage)
     iLoad *= 100.0 / 255.0
     return iLoad * Unit.percent
 
@@ -402,7 +400,7 @@ def parseDTCCode(baBytes : bytearray):
 
     strDTCCode = ['P', 'C', 'B', 'U'][baBytes[0] >> 6]  # 1st Byte: 2 high bits
     strDTCCode += str((baBytes[0] >> 4) & 0b0011)       # 1st Byte: next 2 lower bits
-    strDTCCode += convertByteArrayToHexString(baBytes)[1:4]
+    strDTCCode += Utility.convertByteArrayToHexString(baBytes)[1:4]
 
     # Get DTC Code Description (or empty string)...
     return ( strDTCCode, Codes.Codes.get(strDTCCode, "") )
@@ -507,4 +505,4 @@ def getCVN(listMessages : list[Message]):
     baMessage = decodeEncodedMessage(listMessages, 4)
     if baMessage is None:
         return None
-    return convertByteArrayToHexString(baMessage)
+    return Utility.convertByteArrayToHexString(baMessage)

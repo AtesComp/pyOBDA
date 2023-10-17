@@ -30,7 +30,9 @@ import logging
 
 from .Command import Command
 from .Protocols.ECU import ECU
-from .decoders import *
+
+# All decoders are used here!
+from .Decoders import *
 
 logger = logging.getLogger(__name__)
 
