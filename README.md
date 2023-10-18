@@ -1,3 +1,4 @@
+
 # Onboard Diagnostics II Advanced: pyOBDA
 
 The pyOBDA advances the previous [pyOBD](https://github.com/barracuda-fsh/pyobd) and [python-obd](https://github.com/brendan-w/python-OBD) projects by restructuring, combining, and rewriting their code into a single, uniform application.  It also has minimal external library requirements.
@@ -29,6 +30,12 @@ Install the following required dependencies.
     # OR
     pip install pyserial
 ```
+<dl><dd><dl><dd>Additionally, to use the pyserial lib as a normal user, the user id must at least join the <code>dialout</code> group for USB connected ELM devices.  Additionally, joining the <code>tty</code> group may be needed. The user must logout and login for the group change to take effect.</dd></dl></dd></dl>
+
+```shell
+    sudo usermod -a -G dialout $USER
+```
+<dl><dd><dl><dd>There are other ways to gain direct user access to these devices, such as udev rules.</dd></dl></dd></dl>
 
 * **Pint** - The "pint" library is required for universal unit and scale values. See: [pint](https://github.com/hgrecco/pint) (PyPI: see https://pypi.org/project/Pint/).
 ```shell
@@ -37,10 +44,16 @@ Install the following required dependencies.
     pip install Pint
 ```
 
-If using pip, a shorter way to install the requirements:
+* **Bluetooth** [OPTIONAL] - Bluetooth packages may need to be installed to use Bluetooth-connected ELM devices if not already installed.
+```shell
+    sudo apt-get install bluetooth bluez-utils blueman
+```
+
+If using `pip`, a shorter way to install the requirements:
 ```shell
     cd to/dir/pyobda
     pip install -r requirements.txt
+    sudo usermod -a -G dialout $USER
 ```
 
 ### 2. Install pyOBDA:
@@ -77,7 +90,7 @@ Modern Python uses Virtual Environments to protect your system. See [Python3 ven
 
 #### Configuration Items
 
-pyOBDA uses a configuration file to manage it connection and operation.
+pyOBDA uses a configuration file to manage its connection and operation.
 
 The OBD II configuration items are:
 
